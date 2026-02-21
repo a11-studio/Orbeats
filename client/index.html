@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agar3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+    canvas { display: block; }
+
+    /* ── Name tags (HTML overlay) ───────────────────── */
+    .nameTag {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.7), 0 0 6px rgba(0,0,0,0.3);
+      white-space: nowrap;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+    /* ── Join Screen ──────────────────────────────── */
+    #join-screen {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      z-index: 100;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    #join-screen h1 {
+      font-size: 64px; color: #fff; margin-bottom: 32px;
+      text-shadow: 0 0 30px rgba(255,100,100,0.5);
+      letter-spacing: 4px;
+    }
+    #join-screen input {
+      width: 280px; padding: 14px 20px; font-size: 18px;
+      border: 2px solid rgba(255,255,255,0.2); border-radius: 30px;
+      background: rgba(255,255,255,0.08); color: #fff;
+      outline: none; text-align: center;
+      margin-bottom: 20px;
+    }
+    #join-screen input::placeholder { color: rgba(255,255,255,0.4); }
+    #join-screen input:focus { border-color: rgba(255,100,100,0.6); }
+    #join-screen button {
+      width: 280px; padding: 14px; font-size: 20px; font-weight: bold;
+      border: none; border-radius: 30px; cursor: pointer;
+      background: linear-gradient(135deg, #ff4444, #ff6b35);
+      color: #fff; letter-spacing: 2px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(255,68,68,0.4);
+    }
+    #join-screen button:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
+
+    /* ── HUD ──────────────────────────────────────── */
+    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; font-family: 'Segoe UI', sans-serif; display: none; }
+    #hud.active { display: block; }
+
+    #trophy-badge {
+      position: absolute; bottom: 24px; left: 24px;
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, #ff9900, #ff6600);
+      padding: 10px 20px; border-radius: 30px;
+      color: #fff; font-size: 18px; font-weight: 700;
+      box-shadow: 0 4px 16px rgba(255,153,0,0.4);
+    }
+    #trophy-badge svg { width: 24px; height: 24px; fill: #fff; }
+
+    #leaderboard {
+      position: absolute; top: 20px; right: 20px;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+      border-radius: 14px; padding: 16px 20px; min-width: 200px;
+      color: #fff; font-size: 14px;
+    }
+    #leaderboard h3 { margin-bottom: 10px; font-size: 16px; opacity: 0.8; letter-spacing: 1px; }
+    #leaderboard-list { list-style: none; }
+    #leaderboard-list li {
+      padding: 4px 0; display: flex; justify-content: space-between; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    #leaderboard-list li.me { color: #ff4444; font-weight: 700; }
+    #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; }
+    #leaderboard-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #leaderboard-list li .lb-score { font-weight: 600; }
+
+    /* ── New Game button (bottom-right) ──────────── */
+    #new-game-btn {
+      position: absolute; bottom: 24px; right: 24px;
+      padding: 10px 24px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      color: #fff; font-size: 14px; font-weight: 600;
+      letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    #new-game-btn:hover {
+      background: rgba(255,68,68,0.45);
+      border-color: rgba(255,68,68,0.5);
+      transform: scale(1.05);
+    }
+    #new-game-btn:active { transform: scale(0.97); }
+
+    /* ── Death / Game Over overlay ─────────────────── */
+    #death-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); display: none;
+      align-items: center; justify-content: center;
+      z-index: 50;
+      font-family: 'Segoe UI', sans-serif; color: #fff;
+      backdrop-filter: blur(6px);
+    }
+    #death-overlay.active { display: flex; }
+    .death-panel {
+      background: rgba(20,20,40,0.92);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      min-width: 340px;
+      max-width: 420px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .death-panel h2 {
+      font-size: 42px; margin-bottom: 8px; color: #ff4444;
+      letter-spacing: 3px; text-shadow: 0 0 20px rgba(255,68,68,0.4);
+    }
+    #death-msg { font-size: 16px; opacity: 0.6; margin-bottom: 24px; }
+    .death-score-row {
+      display: flex; justify-content: center; align-items: baseline; gap: 12px;
+      margin-bottom: 24px;
+    }
+    .death-label { font-size: 16px; opacity: 0.5; }
+    .death-value { font-size: 36px; font-weight: 700; color: #ff9900; }
+    .death-highscores { margin-bottom: 28px; }
+    .death-highscores h3 { font-size: 14px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 12px; }
+    #death-highscore-list { list-style: none; padding: 0; }
+    #death-highscore-list li {
+      display: flex; justify-content: space-between; gap: 16px;
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 15px;
+    }
+    #death-highscore-list li .hs-rank { opacity: 0.4; min-width: 24px; text-align: left; }
+    #death-highscore-list li .hs-name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #death-highscore-list li .hs-score { font-weight: 600; color: #ff9900; }
+    #death-highscore-list li.highlight { color: #ff4444; font-weight: 700; }
+    #death-play-btn {
+      padding: 14px 40px; font-size: 18px; font-weight: 700;
+      border: none; border-radius: 30px; cursor: pointer;
+      background: linear-gradient(135deg, #ff4444, #ff6b35);
+      color: #fff; letter-spacing: 2px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(255,68,68,0.4);
+    }
+    #death-play-btn:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
+    #death-play-btn:active { transform: scale(0.97); }
+    .death-no-scores { font-size: 14px; opacity: 0.3; font-style: italic; }
+  </style>
+</head>
+<body>
+  <!-- Join Screen -->
+  <div id="join-screen">
+    <h1>AGAR3D</h1>
+    <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
+    <button id="join-btn">PLAY</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="leaderboard">
+      <h3>LEADERBOARD</h3>
+      <ul id="leaderboard-list"></ul>
+    </div>
+
+    <div id="trophy-badge">
+      <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7h2c0-1.66 1.34-3 3-3s3 1.34 3 3h2c0-2.76-2.24-5-5-5zM5 7c-1.1 0-2 .9-2 2v2c0 2.76 2.24 5 5 5v2H6v2h12v-2h-2v-2c2.76 0 5-2.24 5-5V9c0-1.1-.9-2-2-2h-1.18C17.93 7.31 18 7.65 18 8H6c0-.35.07-.69.18-1H5zm0 2h1v2c0 1.66 1.34 3 3 3h6c1.66 0 3-1.34 3-3V9h1v2c0 1.66-1.34 3-3 3H8c-1.66 0-3-1.34-3-3V9z"/></svg>
+      <span id="trophy-score">0</span>
+    </div>
+
+    <button id="new-game-btn">NEW GAME</button>
+  </div>
+
+  <!-- Death / Game Over overlay -->
+  <div id="death-overlay">
+    <div class="death-panel">
+      <h2 id="death-panel-title">GAME OVER</h2>
+      <p id="death-msg">Eaten by someone</p>
+      <div class="death-score-row">
+        <span class="death-label">Your Score</span>
+        <span id="death-score-value" class="death-value">0</span>
+      </div>
+      <div class="death-highscores">
+        <h3>TOP SCORES TODAY</h3>
+        <ol id="death-highscore-list"></ol>
+      </div>
+      <button id="death-play-btn">START NEW GAME</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
