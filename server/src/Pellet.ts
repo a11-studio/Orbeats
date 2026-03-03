@@ -7,13 +7,13 @@ import {
   SPECIAL_PELLET_RADIUS,
   RARE_CANDY_MASS,
   RARE_CANDY_RADIUS,
-} from '@agar3d/shared';
-import type { PelletState } from '@agar3d/shared';
+} from '@orbeats/shared';
+import type { PelletState } from '@orbeats/shared';
 
 const PELLET_COLORS = [
-  0xff4fd8, 0x3cf2ff, 0x7cff3c, 0xffe95c, 0xff993c, 0x9b5cff,
+  0x003cff, 0x5a00ff, 0xff5a00, 0xe6a800,
 ];
-const SPECIAL_10_COLOR = 0x00f0ff; // electric cyan
+const SPECIAL_10_COLOR = 0xf0b90b; // golden
 const RARE_100_COLOR = 0xff1493; // hot pink
 
 let nextId = 0;

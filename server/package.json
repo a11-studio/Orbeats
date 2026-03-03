@@ -1,5 +1,5 @@
 {
-  "name": "@agar3d/server",
+  "name": "@orbeats/server",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@agar3d/shared": "*",
+    "@orbeats/shared": "*",
     "ws": "^8.19.0"
   },
   "devDependencies": {

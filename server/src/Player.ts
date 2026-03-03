@@ -6,8 +6,8 @@ import {
   massToRadius,
   massToSpeed,
   SPLIT_COOLDOWN,
-} from '@agar3d/shared';
-import type { Vec2, EntityState } from '@agar3d/shared';
+} from '@orbeats/shared';
+import type { Vec2, EntityState } from '@orbeats/shared';
 
 const CANDY_COLORS = [
   0xff3333, 0x33cc55, 0x3388ff, 0xff9900, 0xcc33ff,

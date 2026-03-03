@@ -1,4 +1,4 @@
-import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS } from '@agar3d/shared';
+import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS } from '@orbeats/shared';
 import type { WebSocket } from 'ws';
 import { World } from './World.js';
 import {

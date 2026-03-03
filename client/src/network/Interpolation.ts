@@ -1,5 +1,5 @@
-import type { EntityState, LeaderboardEntry } from '@agar3d/shared';
-import type { SnapshotMsg } from '@agar3d/shared';
+import type { EntityState, LeaderboardEntry } from '@orbeats/shared';
+import type { SnapshotMsg } from '@orbeats/shared';
 
 interface BufferedSnapshot {
   time: number;

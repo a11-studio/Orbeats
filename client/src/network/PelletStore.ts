@@ -1,4 +1,4 @@
-import type { PelletState } from '@agar3d/shared';
+import type { PelletState } from '@orbeats/shared';
 
 /**
  * Client-side pellet store: a stable Map<pelletId, PelletState>.

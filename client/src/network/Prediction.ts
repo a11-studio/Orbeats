@@ -1,4 +1,4 @@
-import { massToSpeed, ARENA_HALF, massToRadius } from '@agar3d/shared';
+import { massToSpeed, ARENA_HALF, massToRadius } from '@orbeats/shared';
 
 // ── Tuning constants (tweak these) ──────────────────────
 /** Distance threshold: if reconciliation error exceeds this, hard-snap */

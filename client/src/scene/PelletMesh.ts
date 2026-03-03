@@ -4,8 +4,8 @@ import {
   PELLET_COUNT,
   SPECIAL_PELLET_RADIUS,
   RARE_CANDY_RADIUS,
-} from '@agar3d/shared';
-import type { PelletState } from '@agar3d/shared';
+} from '@orbeats/shared';
+import type { PelletState } from '@orbeats/shared';
 
 const MAX_PELLETS = PELLET_COUNT + 120;
 const MAX_RARE_CANDIES = 20;
@@ -27,7 +27,7 @@ function pelletType(p: PelletState): 'normal' | 'special_10' | 'rare_100' {
 /**
  * Renders pellets using InstancedMesh per type.
  * - Normal: standard colors
- * - Special 10pt: electric cyan, emissive glow, slightly larger
+ * - Special 10pt: vivid green, emissive glow, slightly larger
  * - Rare 100pt: hot pink, larger, pulsate animation
  */
 export class PelletMeshManager {
@@ -46,13 +46,14 @@ export class PelletMeshManager {
   constructor(scene: THREE.Scene) {
     const normalMat = new THREE.MeshStandardMaterial({
       metalness: 0.1,
-      roughness: 0.6,
-      emissive: 0x111111,
+      roughness: 0.45,
+      emissive: 0x222222,
+      emissiveIntensity: 0.15,
     });
     const specialMat = new THREE.MeshStandardMaterial({
       metalness: 0.1,
       roughness: 0.5,
-      emissive: 0x00f0ff,
+      emissive: 0xf0b90b,
       emissiveIntensity: 0.4,
     });
 
@@ -66,8 +67,8 @@ export class PelletMeshManager {
     const wrapperMat = new THREE.MeshStandardMaterial({
       metalness: 0.25,
       roughness: 0.3,
-      color: 0x00f0ff,
-      emissive: 0x00f0ff,
+      color: 0xf0b90b,
+      emissive: 0xf0b90b,
       emissiveIntensity: 0.4,
     });
     const stripeMat = new THREE.MeshStandardMaterial({

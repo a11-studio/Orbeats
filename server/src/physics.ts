@@ -1,5 +1,5 @@
-import { EAT_RATIO } from '@agar3d/shared';
-import type { EntityState } from '@agar3d/shared';
+import { EAT_RATIO } from '@orbeats/shared';
+import type { EntityState } from '@orbeats/shared';
 import type { Pellet } from './Pellet.js';
 
 /** Anything that participates in collisions and can be serialized */

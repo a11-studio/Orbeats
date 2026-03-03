@@ -11,7 +11,7 @@ import {
   type PelletSpawnedMsg,
   type PelletSyncMsg,
   type NewGameStartedMsg,
-} from '@agar3d/shared';
+} from '@orbeats/shared';
 
 export type SnapshotHandler = (msg: SnapshotMsg) => void;
 export type WelcomeHandler = (msg: WelcomeMsg) => void;

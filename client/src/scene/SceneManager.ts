@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { createFloor } from './Floor.js';
 
-const CAMERA_HEIGHT = 54;
-const CAMERA_BACK = 40;
+const CAMERA_HEIGHT = 68;
+const CAMERA_BACK = 50;
 
 // ── WebGL Support Detection ──────────────────────────────
 function isWebGLAvailable(): boolean {

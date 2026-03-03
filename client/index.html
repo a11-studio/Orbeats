@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agar3D</title>
+  <title>Orbeats</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
@@ -162,13 +162,14 @@
     }
     #death-play-btn:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
     #death-play-btn:active { transform: scale(0.97); }
+    .death-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .death-no-scores { font-size: 14px; opacity: 0.3; font-style: italic; }
   </style>
 </head>
 <body>
   <!-- Join Screen -->
   <div id="join-screen">
-    <h1>AGAR3D</h1>
+    <h1>ORBEATS</h1>
     <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
     <button id="join-btn">PLAY</button>
   </div>
@@ -185,7 +186,7 @@
       <span id="trophy-score">0</span>
     </div>
 
-    <button id="new-game-btn">NEW GAME</button>
+    <button id="new-game-btn">END GAME</button>
   </div>
 
   <!-- Death / Game Over overlay -->
@@ -201,7 +202,9 @@
         <h3>TOP SCORES TODAY</h3>
         <ol id="death-highscore-list"></ol>
       </div>
-      <button id="death-play-btn">START NEW GAME</button>
+      <div class="death-buttons">
+        <button id="death-play-btn">START NEW GAME</button>
+      </div>
     </div>
   </div>
 

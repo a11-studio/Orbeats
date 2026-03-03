@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ARENA_SIZE } from '@agar3d/shared';
+import { ARENA_SIZE } from '@orbeats/shared';
 
 /**
  * Create a glossy tiled grid floor using a CanvasTexture.

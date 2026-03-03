@@ -1,4 +1,4 @@
-import type { LeaderboardEntry } from '@agar3d/shared';
+import type { LeaderboardEntry } from '@orbeats/shared';
 import { getTopScoresToday, type TopScoreEntry } from './ScoreManager.js';
 
 export class HUD {
@@ -15,11 +15,10 @@ export class HUD {
 
   private playerId: string = '';
 
-  /** Set by the consumer: New Game button (during PLAYING → show leaderboard). */
+  /** Set by the consumer: End Game button (during PLAYING → trigger multiplier flow). */
   onNewGameClick: (() => void) | null = null;
-  /** Set by the consumer: Start Match button (on overlay → reset). */
+  /** Set by the consumer: Start Match button (on death overlay → reset). */
   onStartMatch: (() => void) | null = null;
-
   constructor() {
     this.trophyScoreEl = document.getElementById('trophy-score')!;
     this.leaderboardList = document.getElementById('leaderboard-list')!;
@@ -93,7 +92,40 @@ export class HUD {
     this.deathScoreEl.textContent = Math.floor(finalScore).toLocaleString();
     this.populateTopScores(finalScore, playerName);
     this.deathPlayBtn.textContent = 'START NEW GAME';
+    this.deathPlayBtn.style.display = '';
     this.deathOverlay.classList.add('active');
+  }
+
+  showDeathWithMultiplier(
+    killerName: string,
+    multiplier: number,
+    baseScore: number,
+    multipliedScore: number,
+    playerName: string,
+    topScores: { name: string; score: number }[],
+  ): void {
+    this.deathPanelTitle.textContent = 'GAME OVER';
+    this.deathMsg.style.display = '';
+    this.deathMsg.textContent = killerName === 'Session ended'
+      ? `Session ended • You hit x${multiplier.toFixed(1)}!`
+      : `Eaten by ${this.escapeHtml(killerName)} • You hit x${multiplier.toFixed(1)}!`;
+    this.populateTopScores(multipliedScore, playerName);
+    this.deathPlayBtn.textContent = 'START NEW GAME';
+    this.deathPlayBtn.style.display = '';
+    this.deathOverlay.classList.add('active');
+    this.animateDeathScore(baseScore, multipliedScore, 600);
+  }
+
+  private animateDeathScore(from: number, to: number, durationMs: number): void {
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - (1 - t) * (1 - t);
+      const val = Math.floor(from + (to - from) * eased);
+      this.deathScoreEl.textContent = val.toLocaleString();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   hideDeath(): void {

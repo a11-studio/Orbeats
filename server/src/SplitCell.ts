@@ -1,5 +1,5 @@
-import { ARENA_HALF, massToRadius, massToSpeed, SPLIT_IMPULSE } from '@agar3d/shared';
-import type { EntityState } from '@agar3d/shared';
+import { ARENA_HALF, massToRadius, massToSpeed, SPLIT_IMPULSE } from '@orbeats/shared';
+import type { EntityState } from '@orbeats/shared';
 
 let splitCounter = 0;
 

@@ -1,4 +1,4 @@
-import { ARENA_HALF, EAT_RATIO, SPLIT_MIN_MASS, MAX_PLAYER_CELLS } from '@agar3d/shared';
+import { ARENA_HALF, EAT_RATIO, SPLIT_MIN_MASS, MAX_PLAYER_CELLS } from '@orbeats/shared';
 import { Player } from './Player.js';
 import type { Pellet } from './Pellet.js';
 

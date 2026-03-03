@@ -1,5 +1,5 @@
 {
-  "name": "@agar3d/client",
+  "name": "@orbeats/client",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@agar3d/shared": "*",
+    "@orbeats/shared": "*",
     "three": "^0.172.0"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { massToRadius } from '@agar3d/shared';
+import { massToRadius } from '@orbeats/shared';
 
 const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
 

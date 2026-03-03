@@ -1,5 +1,5 @@
 import { WebSocketServer, type WebSocket } from 'ws';
-import { ClientMsgType, type ClientMsg } from '@agar3d/shared';
+import { ClientMsgType, type ClientMsg } from '@orbeats/shared';
 import { GameLoop } from './GameLoop.js';
 import { buildWelcome, sendJSON } from './network.js';
 
@@ -81,4 +81,4 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-console.log(`[Server] Agar3D WebSocket server running on ws://localhost:${PORT}`);
+console.log(`[Server] Orbeats WebSocket server running on ws://localhost:${PORT}`);

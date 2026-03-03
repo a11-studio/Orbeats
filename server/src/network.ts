@@ -12,7 +12,7 @@ import {
   type ServerMsg,
   type PelletState,
   ARENA_SIZE,
-} from '@agar3d/shared';
+} from '@orbeats/shared';
 import type { World } from './World.js';
 
 export function sendJSON(ws: WebSocket, msg: ServerMsg): void {

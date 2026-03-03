@@ -1,5 +1,5 @@
-const BEST_SCORE_KEY = 'agar_best_score';
-const TOP_SCORES_TODAY_KEY = 'agar_top_scores_today';
+const BEST_SCORE_KEY = 'orbeats_best_score';
+const TOP_SCORES_TODAY_KEY = 'orbeats_top_scores_today';
 
 export interface TopScoreEntry {
   name: string;

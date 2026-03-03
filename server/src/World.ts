@@ -7,8 +7,8 @@ import {
   SIBLING_REPULSION,
   MERGE_OVERLAP_GRACE,
   BASE_MASS,
-} from '@agar3d/shared';
-import type { LeaderboardEntry } from '@agar3d/shared';
+} from '@orbeats/shared';
+import type { LeaderboardEntry } from '@orbeats/shared';
 import { Player } from './Player.js';
 import { SplitCell } from './SplitCell.js';
 import { PelletManager, type PelletEvents } from './Pellet.js';

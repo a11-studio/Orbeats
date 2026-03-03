@@ -10,11 +10,12 @@ import { Prediction } from './network/Prediction.js';
 import { PelletStore } from './network/PelletStore.js';
 import { InputManager } from './input/InputManager.js';
 import { HUD } from './ui/HUD.js';
+import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
 import { saveBestScoreIfHigher, addScoresToTopScoresToday } from './ui/ScoreManager.js';
-import { BASE_MASS, massToRadius, massToSpeed } from '@agar3d/shared';
+import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 // ── State ────────────────────────────────────────────
-type GamePhase = 'PLAYING' | 'LEADERBOARD' | 'GAME_OVER';
+type GamePhase = 'PLAYING' | 'LEADERBOARD' | 'GAME_OVER' | 'MULTIPLIER';
 let playerId: string | null = null;
 let playerName: string = 'Anon';
 let playerMass: number = BASE_MASS;
@@ -23,6 +24,7 @@ let playerAlive: boolean = true;
 let inputFrozen: boolean = false;
 let gamePhase: GamePhase = 'PLAYING';
 let frozenFinalScore: number = 0;
+let playerFrozen: boolean = false;
 
 // ── Initialize modules ───────────────────────────────
 const sceneManager = new SceneManager();
@@ -32,6 +34,7 @@ const prediction = new Prediction();
 const pelletStore = new PelletStore();
 const input = new InputManager();
 const hud = new HUD();
+const multiplierOverlay = new MultiplierOverlay();
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
@@ -40,26 +43,54 @@ const enemyMeshes = new Map<string, EnemyMesh>();
 // HTML overlay name tags (constant pixel size)
 const nameTags = new NameTagManager(sceneManager.camera);
 
-// Wire up New Game button (during PLAYING → show leaderboard first)
+// Wire up New Game button (during PLAYING → trigger multiplier flow first)
 hud.onNewGameClick = () => {
   if (gamePhase !== 'PLAYING') return;
-  saveBestScoreIfHigher(playerScore);
-  const allScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
-  addScoresToTopScoresToday(allScores);
-  gamePhase = 'LEADERBOARD';
-  inputFrozen = true;
-  hud.showLeaderboard(playerScore, playerName);
+  triggerGameOverFlow();
 };
 
-// Wire up Start Match (on leaderboard/game-over overlay → reset)
-hud.onStartMatch = () => {
-  const scoreToSave = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
-  saveBestScoreIfHigher(scoreToSave);
-  gamePhase = 'PLAYING';
-  inputFrozen = false;
+function triggerGameOverFlow(): void {
+  const baseScore = playerScore;
+  frozenFinalScore = baseScore;
+  playerFrozen = true;
+  inputFrozen = true;
+  gamePhase = 'MULTIPLIER';
+  deathKillerName = 'Session ended';
+  deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  socket.sendInput(0, 0, prediction.nextSeq());
+  multiplierOverlay.mount();
+  multiplierOverlay.show((multiplier) => {
+    const multipliedScore = Math.floor(frozenFinalScore * multiplier);
+    frozenFinalScore = multipliedScore;
+    addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
+    saveBestScoreIfHigher(multipliedScore);
+    multiplierOverlay.hide();
+    gamePhase = 'GAME_OVER';
+    hud.showDeathWithMultiplier(
+      deathKillerName,
+      multiplier,
+      baseScore,
+      multipliedScore,
+      playerName,
+      deathTopScores,
+    );
+  });
+}
+
+function resetGame(): void {
   hud.hideDeath();
   hud.hideLeaderboard();
+  multiplierOverlay.hide();
+  playerFrozen = false;
+  gamePhase = 'PLAYING';
   socket.sendNewGame();
+}
+
+// Wire up Start Match (on death overlay → reset)
+hud.onStartMatch = () => {
+  const scoreToSave = (gamePhase === 'GAME_OVER' || gamePhase === 'MULTIPLIER') ? frozenFinalScore : playerScore;
+  saveBestScoreIfHigher(scoreToSave);
+  resetGame();
 };
 
 // Additional player-owned split cell meshes (rendered as player-colored spheres)
@@ -121,22 +152,40 @@ socket.onWelcome = (msg) => {
 };
 
 socket.onSnapshot = (msg) => {
+  if (gamePhase === 'GAME_OVER' || gamePhase === 'MULTIPLIER') return;
   interpolation.pushSnapshot(msg);
 };
 
+let deathKillerName = '';
+let deathTopScores: { name: string; score: number }[] = [];
+
 socket.onDeath = (msg) => {
-  gamePhase = 'GAME_OVER';
+  gamePhase = 'MULTIPLIER';
   playerAlive = false;
   inputFrozen = true;
+  playerFrozen = true;
   frozenFinalScore = msg.finalScore;
   playerScore = msg.finalScore;
-  const allScores = [
-    { name: playerName, score: msg.finalScore },
-    ...msg.topScores,
-  ];
-  addScoresToTopScoresToday(allScores);
+  deathKillerName = msg.killerName;
+  deathTopScores = msg.topScores;
   socket.sendInput(0, 0, prediction.nextSeq());
-  hud.showDeath(msg.killerName, msg.finalScore, playerName, msg.topScores);
+  multiplierOverlay.mount();
+  multiplierOverlay.show((multiplier) => {
+    frozenFinalScore = Math.floor(msg.finalScore * multiplier);
+    playerScore = frozenFinalScore;
+    addScoresToTopScoresToday([{ name: playerName, score: frozenFinalScore }]);
+    saveBestScoreIfHigher(frozenFinalScore);
+    gamePhase = 'GAME_OVER';
+    multiplierOverlay.hide();
+    hud.showDeathWithMultiplier(
+      deathKillerName,
+      multiplier,
+      msg.finalScore,
+      frozenFinalScore,
+      playerName,
+      deathTopScores,
+    );
+  });
 };
 
 socket.onRespawn = () => {
@@ -153,6 +202,7 @@ socket.onNewGameStarted = () => {
   playerScore = 0;
   playerAlive = true;
   inputFrozen = false;
+  playerFrozen = false;
 
   hud.hideDeath();
   hud.hideLeaderboard();
@@ -213,7 +263,7 @@ function gameLoop(now: number): void {
     return;
   }
 
-  if (gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD') {
+  if (gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD' || gamePhase === 'MULTIPLIER') {
     const displayScore = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
@@ -228,7 +278,7 @@ function gameLoop(now: number): void {
   // ── 2. Check for new snapshot → reconcile once ─────
   const hasNew = interpolation.consumeNewSnapshot();
 
-  if (hasNew) {
+  if (hasNew && !playerFrozen) {
     // Find the main player entity (parentId === null, id === playerId)
     const myRawEntity = interpolation.latestEntities.find(
       (e) => e.id === playerId && e.parentId === null,
@@ -237,15 +287,14 @@ function gameLoop(now: number): void {
       playerMass = myRawEntity.mass;
       playerAlive = myRawEntity.alive;
 
-      // Score = total mass of ALL owned blobs (main + split cells)
-      playerScore = myRawEntity.mass;
-      for (const e of interpolation.latestEntities) {
-        if (e.parentId === playerId && e.alive) {
-          playerScore += e.mass;
-        }
-      }
-
       if (myRawEntity.alive) {
+        // Score = total mass of ALL owned blobs (main + split cells)
+        playerScore = myRawEntity.mass;
+        for (const e of interpolation.latestEntities) {
+          if (e.parentId === playerId && e.alive) {
+            playerScore += e.mass;
+          }
+        }
         prediction.reconcile(
           myRawEntity.x,
           myRawEntity.z,
@@ -253,6 +302,7 @@ function gameLoop(now: number): void {
           interpolation.latestSeq,
         );
       }
+      // When dead: do NOT update playerScore; wait for Death message with finalScore
     }
   }
 
@@ -273,7 +323,7 @@ function gameLoop(now: number): void {
   }
 
   // ── 4. Client-side prediction (every frame) ────────
-  if (!inputFrozen) {
+  if (!inputFrozen && !playerFrozen) {
     prediction.applyInput(input.dirX, input.dirZ, dt, playerMass);
   }
 
