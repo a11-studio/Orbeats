@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23ff4444'/><g stroke='%23fff' stroke-width='1.2' stroke-linecap='round' fill='none'><path d='M8 11.5L11.5 14L8 15.5'/><path d='M24 11.5L20.5 14L24 15.5'/></g><circle cx='10' cy='14' r='1' fill='%23fff'/><circle cx='22' cy='14' r='1' fill='%23fff'/><path d='M10.5 20.5L13 22L15.5 20L18 22L21.5 20.5' stroke='%23fff' stroke-width='1' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
   <title>Orbeats</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,7 +84,20 @@
       padding: 4px 0; display: flex; justify-content: space-between; gap: 12px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    #leaderboard-list li.me { color: #ff4444; font-weight: 700; }
+    #leaderboard-list li.me { font-weight: 700; }
+    #leaderboard-list li.me .rank { color: rgba(255,255,255,0.6); }
+    #leaderboard-list li.me .name {
+      background: linear-gradient(135deg, #F09736, #ED752F);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    #leaderboard-list li.me .lb-score {
+      background: linear-gradient(135deg, #F09736, #ED752F);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
     #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; }
     #leaderboard-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #leaderboard-list li .lb-score { font-weight: 600; }

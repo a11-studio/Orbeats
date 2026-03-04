@@ -1,4 +1,4 @@
-import { massToSpeed, ARENA_HALF, massToRadius } from '@orbeats/shared';
+import { massToSpeed, ARENA_HALF, massToRadius, SPLIT_SPEED_BONUS } from '@orbeats/shared';
 
 // ── Tuning constants (tweak these) ──────────────────────
 /** Distance threshold: if reconciliation error exceeds this, hard-snap */
@@ -11,6 +11,7 @@ interface InputRecord {
   dirX: number;
   dirZ: number;
   dt: number;
+  hasSplitCells?: boolean;
 }
 
 /**
@@ -50,15 +51,15 @@ export class Prediction {
   }
 
   /** Record and apply an input locally (called every frame) */
-  applyInput(dirX: number, dirZ: number, dt: number, mass: number): void {
+  applyInput(dirX: number, dirZ: number, dt: number, mass: number, hasSplitCells: boolean = false): void {
     const seq = this.seq;
-    this.pendingInputs.push({ seq, dirX, dirZ, dt });
+    this.pendingInputs.push({ seq, dirX, dirZ, dt, hasSplitCells });
 
     if (this.pendingInputs.length > 300) {
       this.pendingInputs = this.pendingInputs.slice(-200);
     }
 
-    const speed = massToSpeed(mass);
+    const speed = massToSpeed(mass) * (hasSplitCells ? SPLIT_SPEED_BONUS : 1);
 
     this.x += dirX * speed * dt;
     this.z += dirZ * speed * dt;
@@ -83,6 +84,7 @@ export class Prediction {
     serverZ: number,
     serverMass: number,
     ackSeq: number,
+    hasSplitCells: boolean = false,
   ): void {
     this.pendingInputs = this.pendingInputs.filter((input) => input.seq > ackSeq);
 
@@ -93,7 +95,8 @@ export class Prediction {
     let reconciledZ = serverZ;
 
     for (const input of this.pendingInputs) {
-      const speed = massToSpeed(this.mass);
+      const splitBonus = (input.hasSplitCells ?? hasSplitCells) ? SPLIT_SPEED_BONUS : 1;
+      const speed = massToSpeed(this.mass) * splitBonus;
 
       reconciledX += input.dirX * speed * input.dt;
       reconciledZ += input.dirZ * speed * input.dt;

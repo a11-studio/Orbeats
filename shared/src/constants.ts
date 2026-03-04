@@ -27,9 +27,14 @@ export const SPLIT_MIN_MASS = 20; // minimum mass per blob to split (each half >
 export const SPLIT_MERGE_DELAY = 8000; // ms before halves CAN merge (overlap required)
 export const SPLIT_COOLDOWN = 500; // ms between split actions (anti-spam)
 export const SPLIT_IMPULSE = 100; // initial launch speed of the ejected half
+export const SPLIT_SPEED_BONUS = 1.08; // split cells are 8% faster (smaller = more mobile)
 export const MAX_PLAYER_CELLS = 8; // max blobs per player (1 main + 7 splits)
 export const SIBLING_REPULSION = 2.0; // push-apart strength between same-player blobs
 export const MERGE_OVERLAP_GRACE = 5000; // ms after merge cooldown → force-merge regardless
+
+// ── Mass decay (prevents infinite growth) ─────────────────
+export const MASS_DECAY_THRESHOLD = 2000; // decay only applies above this mass
+export const MASS_DECAY_PER_1000 = 1; // at 2000 mass → 2 pts/s, at 5000 → 5 pts/s
 
 // ── Server tick rates ─────────────────────────────────
 export const SERVER_TICK_RATE = 20; // Hz simulation
@@ -52,4 +57,10 @@ export function massToRadius(mass: number): number {
 export function massToSpeed(mass: number): number {
   const radius = massToRadius(mass);
   return BASE_SPEED / (1 + radius * 0.006);
+}
+
+/** Mass decay per second when above threshold. E.g. 2000 mass → 2 pts/s, 5000 → 5 pts/s */
+export function getMassDecayPerSecond(mass: number): number {
+  if (mass <= MASS_DECAY_THRESHOLD) return 0;
+  return (mass / 1000) * MASS_DECAY_PER_1000;
 }

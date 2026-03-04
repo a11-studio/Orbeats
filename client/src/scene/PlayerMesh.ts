@@ -3,8 +3,8 @@ import { massToRadius } from '@orbeats/shared';
 
 const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
 
-/** Smoothing constant for position lerp. */
-const POS_LERP_K = 10;
+/** Smoothing constant for position lerp (lower = smoother, less jitter). */
+const POS_LERP_K = 6;
 /** Smoothing constant for scale lerp. */
 const SCALE_LERP_K = 8;
 

@@ -117,6 +117,12 @@ interface MergeAnim {
 const MERGE_ANIM_DURATION = 300; // ms
 const mergeAnims: MergeAnim[] = [];
 
+// Smoothed velocity for camera (avoids jitter when starting/stopping)
+let smoothedVelX = 0;
+let smoothedVelZ = 0;
+const VELOCITY_SMOOTHING = 0.2;
+const VELOCITY_DEAD_ZONE = 0.001;
+
 // Input sending throttle
 const INPUT_SEND_RATE = 1000 / 30; // 30Hz
 let lastInputSendTime = 0;
@@ -217,6 +223,8 @@ socket.onNewGameStarted = () => {
   // Clear network buffers
   interpolation.reset();
   prediction.reset();
+  smoothedVelX = 0;
+  smoothedVelZ = 0;
 
   // Remove all enemy meshes from scene
   for (const [id, enemy] of enemyMeshes) {
@@ -302,11 +310,15 @@ function gameLoop(now: number): void {
             playerScore += e.mass;
           }
         }
+        const hasSplitCellsReconcile = interpolation.latestEntities.some(
+          (e) => e.parentId === playerId && e.alive,
+        );
         prediction.reconcile(
           myRawEntity.x,
           myRawEntity.z,
           myRawEntity.mass,
           interpolation.latestSeq,
+          hasSplitCellsReconcile,
         );
       }
       // When dead: do NOT update playerScore; wait for Death message with finalScore
@@ -330,8 +342,9 @@ function gameLoop(now: number): void {
   }
 
   // ── 4. Client-side prediction (every frame) ────────
+  const hasSplitCells = interpolation.entities.some((e) => e.parentId === playerId && e.alive);
   if (!inputFrozen && !playerFrozen) {
-    prediction.applyInput(input.dirX, input.dirZ, dt, playerMass);
+    prediction.applyInput(input.dirX, input.dirZ, dt, playerMass, hasSplitCells);
   }
 
   // ── 5. Update player mesh at VISUAL position ──────
@@ -511,9 +524,13 @@ function gameLoop(now: number): void {
 
   // ── 8. Camera follows VISUAL position ──────────────
   const speed = massToSpeed(playerMass);
-  const velX = input.dirX * speed;
-  const velZ = input.dirZ * speed;
-  sceneManager.followTarget(prediction.renderX, prediction.renderZ, playerMass, dt, velX, velZ);
+  const targetVelX = input.dirX * speed;
+  const targetVelZ = input.dirZ * speed;
+  smoothedVelX += (targetVelX - smoothedVelX) * VELOCITY_SMOOTHING;
+  smoothedVelZ += (targetVelZ - smoothedVelZ) * VELOCITY_SMOOTHING;
+  if (Math.abs(smoothedVelX) < VELOCITY_DEAD_ZONE) smoothedVelX = 0;
+  if (Math.abs(smoothedVelZ) < VELOCITY_DEAD_ZONE) smoothedVelZ = 0;
+  sceneManager.followTarget(prediction.renderX, prediction.renderZ, playerMass, dt, smoothedVelX, smoothedVelZ);
 
   // ── 9. HUD ─────────────────────────────────────────
   hud.updateScore(playerScore);

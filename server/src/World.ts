@@ -7,6 +7,7 @@ import {
   SIBLING_REPULSION,
   MERGE_OVERLAP_GRACE,
   BASE_MASS,
+  getMassDecayPerSecond,
 } from '@orbeats/shared';
 import type { LeaderboardEntry } from '@orbeats/shared';
 import { Player } from './Player.js';
@@ -213,15 +214,26 @@ export class World {
       cell.update(dt);
     }
 
-    // 3. Move all players and bots
+    // 3. Move all players and bots (main blob gets same speed bonus as split cells when split)
     for (const entity of this.getAllPlayers()) {
-      entity.update(dt, now);
+      const hasSplitCells = this.getPlayerCellCount(entity.id) > 1;
+      entity.update(dt, now, hasSplitCells);
     }
 
-    // 4. Sibling repulsion — push same-player blobs apart during cooldown
+    // 4. Mass decay — large cells lose mass over time (prevents infinite growth)
+    for (const entity of this.getAllEntities()) {
+      if (!entity.alive) continue;
+      const decayPerSec = getMassDecayPerSecond(entity.mass);
+      if (decayPerSec > 0) {
+        const decayAmount = decayPerSec * dt;
+        entity.mass = Math.max(BASE_MASS, entity.mass - decayAmount);
+      }
+    }
+
+    // 5. Sibling repulsion — push same-player blobs apart during cooldown
     this.applySiblingRepulsion(dt, now);
 
-    // 5. Check pellet collisions (server-authoritative)
+    // 6. Check pellet collisions (server-authoritative)
     const pelletSnapshot = this.pellets.getAllArray();
     for (const entity of this.getAllEntities()) {
       if (!entity.alive) continue;
@@ -234,7 +246,7 @@ export class World {
       }
     }
 
-    // 6. Check entity-vs-entity eating
+    // 7. Check entity-vs-entity eating
     const all = this.getAllEntities();
     for (let i = 0; i < all.length; i++) {
       for (let j = i + 1; j < all.length; j++) {
@@ -248,7 +260,7 @@ export class World {
       }
     }
 
-    // 7. Overlap-based merge for split cells
+    // 8. Overlap-based merge for split cells
     for (const [cellId, cell] of this.splitCells) {
       if (!cell.alive) {
         this.splitCells.delete(cellId);
@@ -279,7 +291,7 @@ export class World {
       }
     }
 
-    // 8. Process respawn queue
+    // 9. Process respawn queue
     for (let i = this.respawnQueue.length - 1; i >= 0; i--) {
       if (now >= this.respawnQueue[i].time) {
         const respawning = this.respawnQueue[i].player;
@@ -291,7 +303,7 @@ export class World {
       }
     }
 
-    // 9. Replenish pellets
+    // 10. Replenish pellets
     this.pellets.replenish();
   }
 

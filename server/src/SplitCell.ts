@@ -1,4 +1,4 @@
-import { ARENA_HALF, massToRadius, massToSpeed, SPLIT_IMPULSE } from '@orbeats/shared';
+import { ARENA_HALF, massToRadius, massToSpeed, SPLIT_IMPULSE, SPLIT_SPEED_BONUS } from '@orbeats/shared';
 import type { EntityState } from '@orbeats/shared';
 
 let splitCounter = 0;
@@ -62,7 +62,7 @@ export class SplitCell {
   }
 
   get speed(): number {
-    return massToSpeed(this.mass);
+    return massToSpeed(this.mass) * SPLIT_SPEED_BONUS;
   }
 
   get score(): number {

@@ -6,6 +6,7 @@ import {
   massToRadius,
   massToSpeed,
   SPLIT_COOLDOWN,
+  SPLIT_SPEED_BONUS,
 } from '@orbeats/shared';
 import type { Vec2, EntityState } from '@orbeats/shared';
 
@@ -88,12 +89,12 @@ export class Player {
     this.splitCooldownEnd = now + SPLIT_COOLDOWN;
   }
 
-  update(dt: number, _now: number): void {
+  update(dt: number, _now: number, hasSplitCells: boolean = false): void {
     if (!this.alive) return;
 
-    // Move
-    this.x += this.dirX * this.speed * dt;
-    this.z += this.dirZ * this.speed * dt;
+    const speed = hasSplitCells ? this.speed * SPLIT_SPEED_BONUS : this.speed;
+    this.x += this.dirX * speed * dt;
+    this.z += this.dirZ * speed * dt;
 
     // Clamp to arena bounds
     const bound = ARENA_HALF - this.radius;
