@@ -10,6 +10,9 @@ export class MultiplierOverlay {
   private segmentsEl: HTMLElement;
   private indicator: HTMLElement;
   private instructionEl: HTMLElement;
+  private sessionScoreEl: HTMLElement;
+  private potentialScoreEl: HTMLElement;
+  private baseScore: number = 0;
   private onStopCallback: ((multiplier: number) => void) | null = null;
   private rafId: number = 0;
   private startTime: number = 0;
@@ -23,6 +26,10 @@ export class MultiplierOverlay {
     this.container.id = 'multiplier-overlay';
     this.container.innerHTML = `
       <div class="multiplier-panel">
+        <p class="multiplier-session-label">SESSION SCORE</p>
+        <p class="multiplier-session-score" id="multiplier-session-score">0</p>
+        <p class="multiplier-motivation">Multiply your score!</p>
+        <p class="multiplier-subtitle">Stop the bar at the highest multiplier.</p>
         <p class="multiplier-instruction" id="multiplier-instruction">Click or press Space to stop!</p>
         <div class="multiplier-bar" id="multiplier-bar">
           <div class="multiplier-segments">
@@ -36,6 +43,7 @@ export class MultiplierOverlay {
           </div>
           <div class="multiplier-indicator" id="multiplier-indicator"></div>
         </div>
+        <p class="multiplier-potential-label">Potential score: <span id="multiplier-potential-value">0</span></p>
       </div>
     `;
     this.container.style.cssText = `
@@ -49,19 +57,37 @@ export class MultiplierOverlay {
     this.segmentsEl = this.bar.querySelector('.multiplier-segments')!;
     this.indicator = this.container.querySelector('#multiplier-indicator')!;
     this.instructionEl = this.container.querySelector('#multiplier-instruction')!;
+    this.sessionScoreEl = this.container.querySelector('#multiplier-session-score')!;
+    this.potentialScoreEl = this.container.querySelector('#multiplier-potential-value')!;
 
     const panel = this.container.querySelector('.multiplier-panel')! as HTMLElement;
     panel.style.cssText = `
-      background: rgba(20,20,40,0.95); padding: 40px 56px; border-radius: 20px;
+      background: rgba(20,20,40,0.95); padding: 48px 56px; border-radius: 20px;
       min-width: 420px; text-align: center;
       border: 1px solid rgba(255,255,255,0.12);
     `;
+    (this.container.querySelector('.multiplier-session-label') as HTMLElement).style.cssText = `
+      color: rgba(255,255,255,0.6); font-size: 14px; letter-spacing: 2px; margin-bottom: 8px;
+    `;
+    this.sessionScoreEl.style.cssText = `
+      color: #ff9900; font-size: 42px; font-weight: 700; margin-bottom: 24px;
+    `;
+    (this.container.querySelector('.multiplier-motivation') as HTMLElement).style.cssText = `
+      color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 6px;
+    `;
+    (this.container.querySelector('.multiplier-subtitle') as HTMLElement).style.cssText = `
+      color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 28px;
+    `;
     this.instructionEl.style.cssText = `
-      color: #fff; margin-bottom: 32px; font-size: 19px; font-weight: 700;
+      color: #fff; margin-bottom: 24px; font-size: 19px; font-weight: 700;
       opacity: 0.95; letter-spacing: 0.04em;
     `;
+    (this.container.querySelector('.multiplier-potential-label') as HTMLElement).style.cssText = `
+      color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 24px;
+    `;
+    this.potentialScoreEl.style.cssText = `font-weight: 700; color: #ff9900;`;
     this.bar.style.cssText = `
-      position: relative; height: 32px; overflow: visible;
+      position: relative; height: 32px; overflow: visible; margin-bottom: 0;
     `;
     this.segmentsEl.style.cssText = `
       display: flex; gap: 8px; height: 100%; align-items: stretch;
@@ -77,13 +103,13 @@ export class MultiplierOverlay {
       const html = el as HTMLElement;
       if (html.classList.contains('mz-center')) {
         html.style.cssText = segStyle(
-          'linear-gradient(135deg, #00ff88 0%, #00cc6a 50%, #00ff88 100%)',
-          '0 0 20px rgba(0,255,136,0.5), 0 0 40px rgba(0,255,136,0.25)',
+          'linear-gradient(135deg, #00d26a 0%, #00b359 50%, #00d26a 100%)',
+          '0 0 20px rgba(0,210,106,0.5), 0 0 40px rgba(0,210,106,0.25)',
         ) + 'transform: scale(1.05);';
       } else if (html.classList.contains('mz-1')) {
-        html.style.cssText = segStyle('linear-gradient(135deg, #1f3f2a 0%, #2a4f38 100%)');
+        html.style.cssText = segStyle('linear-gradient(135deg, #8b0000 0%, #a01010 100%)');
       } else if (html.classList.contains('mz-2')) {
-        html.style.cssText = segStyle('linear-gradient(135deg, #2f6f3f 0%, #3a8048 100%)');
+        html.style.cssText = segStyle('linear-gradient(135deg, #ff3b30 0%, #e6352b 100%)');
       } else {
         html.style.cssText = segStyle('linear-gradient(135deg, #ff8c32 0%, #e67a28 100%)');
       }
@@ -124,7 +150,8 @@ export class MultiplierOverlay {
     if (!this.container.parentElement) parent.appendChild(this.container);
   }
 
-  show(onStop: (multiplier: number) => void): void {
+  show(finalScore: number, onStop: (multiplier: number) => void): void {
+    this.baseScore = finalScore;
     this.onStopCallback = onStop;
     this.stopped = false;
     this.selectedMultiplier = null;
@@ -133,7 +160,9 @@ export class MultiplierOverlay {
     this.resetSegmentHighlights();
     this.startTime = performance.now();
     this.container.style.display = 'flex';
+    this.sessionScoreEl.textContent = Math.floor(finalScore).toLocaleString();
     this.instructionEl.textContent = 'Click or press Space to stop!';
+    this.updatePotentialScore();
     this.tick();
   }
 
@@ -151,8 +180,15 @@ export class MultiplierOverlay {
     const pct = pos * 100;
     this.indicator.style.left = `${pct}%`;
     this.indicator.style.transform = 'translate(-50%, -50%)';
+    this.updatePotentialScore();
     this.rafId = requestAnimationFrame(this.tick);
   };
+
+  private updatePotentialScore(): void {
+    const { multiplier } = this.computeMultiplierFromPosition();
+    const potential = Math.floor(this.baseScore * multiplier);
+    this.potentialScoreEl.textContent = potential.toLocaleString();
+  }
 
   private computeMultiplierFromPosition(): { multiplier: number; index: number } {
     const barRect = this.bar.getBoundingClientRect();
@@ -170,7 +206,7 @@ export class MultiplierOverlay {
       const html = el as HTMLElement;
       if (i === index) {
         html.style.transform = 'scale(1.1)';
-        html.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 24px rgba(0,255,136,0.6), 0 0 48px rgba(0,255,136,0.3)';
+        html.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.2), 0 0 24px rgba(0,210,106,0.6), 0 0 48px rgba(0,210,106,0.3)';
       }
     });
   }
@@ -178,7 +214,7 @@ export class MultiplierOverlay {
   private resetSegmentHighlights(): void {
     const segs = this.segmentsEl.querySelectorAll('.mz-seg');
     const baseShadow = 'inset 0 1px 0 rgba(255,255,255,0.15)';
-    const centerGlow = '0 0 20px rgba(0,255,136,0.5), 0 0 40px rgba(0,255,136,0.25)';
+    const centerGlow = '0 0 20px rgba(0,210,106,0.5), 0 0 40px rgba(0,210,106,0.25)';
     segs.forEach((el, i) => {
       const html = el as HTMLElement;
       html.style.transform = html.classList.contains('mz-center') ? 'scale(1.05)' : '';

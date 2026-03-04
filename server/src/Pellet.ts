@@ -13,7 +13,7 @@ import type { PelletState } from '@orbeats/shared';
 const PELLET_COLORS = [
   0x003cff, 0x5a00ff, 0xff5a00, 0xe6a800,
 ];
-const SPECIAL_10_COLOR = 0xf0b90b; // golden
+const SPECIAL_10_COLOR = 0x008687; // teal
 const RARE_100_COLOR = 0xff1493; // hot pink
 
 let nextId = 0;

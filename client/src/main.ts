@@ -25,6 +25,7 @@ let inputFrozen: boolean = false;
 let gamePhase: GamePhase = 'PLAYING';
 let frozenFinalScore: number = 0;
 let playerFrozen: boolean = false;
+let sessionLocked: boolean = false;
 
 // ── Initialize modules ───────────────────────────────
 const sceneManager = new SceneManager();
@@ -50,6 +51,8 @@ hud.onNewGameClick = () => {
 };
 
 function triggerGameOverFlow(): void {
+  if (sessionLocked) return;
+  sessionLocked = true;
   const baseScore = playerScore;
   frozenFinalScore = baseScore;
   playerFrozen = true;
@@ -59,7 +62,7 @@ function triggerGameOverFlow(): void {
   deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
   multiplierOverlay.mount();
-  multiplierOverlay.show((multiplier) => {
+  multiplierOverlay.show(frozenFinalScore, (multiplier) => {
     const multipliedScore = Math.floor(frozenFinalScore * multiplier);
     frozenFinalScore = multipliedScore;
     addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
@@ -82,6 +85,7 @@ function resetGame(): void {
   hud.hideLeaderboard();
   multiplierOverlay.hide();
   playerFrozen = false;
+  sessionLocked = false;
   gamePhase = 'PLAYING';
   socket.sendNewGame();
 }
@@ -160,6 +164,8 @@ let deathKillerName = '';
 let deathTopScores: { name: string; score: number }[] = [];
 
 socket.onDeath = (msg) => {
+  if (sessionLocked) return;
+  sessionLocked = true;
   gamePhase = 'MULTIPLIER';
   playerAlive = false;
   inputFrozen = true;
@@ -170,7 +176,7 @@ socket.onDeath = (msg) => {
   deathTopScores = msg.topScores;
   socket.sendInput(0, 0, prediction.nextSeq());
   multiplierOverlay.mount();
-  multiplierOverlay.show((multiplier) => {
+  multiplierOverlay.show(msg.finalScore, (multiplier) => {
     frozenFinalScore = Math.floor(msg.finalScore * multiplier);
     playerScore = frozenFinalScore;
     addScoresToTopScoresToday([{ name: playerName, score: frozenFinalScore }]);
@@ -203,6 +209,7 @@ socket.onNewGameStarted = () => {
   playerAlive = true;
   inputFrozen = false;
   playerFrozen = false;
+  sessionLocked = false;
 
   hud.hideDeath();
   hud.hideLeaderboard();
@@ -263,7 +270,7 @@ function gameLoop(now: number): void {
     return;
   }
 
-  if (gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD' || gamePhase === 'MULTIPLIER') {
+  if (sessionLocked || gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD' || gamePhase === 'MULTIPLIER') {
     const displayScore = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);

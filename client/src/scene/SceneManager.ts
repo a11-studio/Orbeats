@@ -165,9 +165,13 @@ export class SceneManager {
   }
 
   followTarget(x: number, z: number, _mass: number, _dt: number, _velX: number = 0, velZ: number = 0): void {
-    const lerpFactor = 0.08;
-    this.cameraTargetX += (x - this.cameraTargetX) * lerpFactor;
-    this.cameraTargetZ += (z - this.cameraTargetZ) * lerpFactor;
+    const dx = x - this.cameraTargetX;
+    const dz = z - this.cameraTargetZ;
+    if (Math.abs(dx) < 0.01 && Math.abs(dz) < 0.01) return;
+
+    const followSpeed = 0.08;
+    this.cameraTargetX += dx * followSpeed;
+    this.cameraTargetZ += dz * followSpeed;
 
     let dynamicHeight = CAMERA_HEIGHT;
     let dynamicBack = CAMERA_BACK;
@@ -184,7 +188,7 @@ export class SceneManager {
       dynamicHeight,
       this.cameraTargetZ + dynamicBack,
     );
-    this.camera.position.lerp(this.desiredPos, lerpFactor);
+    this.camera.position.lerp(this.desiredPos, followSpeed);
     this.camera.lookAt(this.cameraTargetX, 0, this.cameraTargetZ);
 
     this.dirLight.position.set(

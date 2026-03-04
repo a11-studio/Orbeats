@@ -3,7 +3,6 @@ import {
   PELLET_RADIUS,
   PELLET_COUNT,
   SPECIAL_PELLET_RADIUS,
-  RARE_CANDY_RADIUS,
 } from '@orbeats/shared';
 import type { PelletState } from '@orbeats/shared';
 
@@ -11,10 +10,8 @@ const MAX_PELLETS = PELLET_COUNT + 120;
 const MAX_RARE_CANDIES = 20;
 const sphereGeo = new THREE.SphereGeometry(1, 12, 12);
 
-/** Shared geometries for salónka candy (core oval + wrapper cones + stripe) */
-const rareCoreGeo = new THREE.SphereGeometry(1, 10, 10);
-const rareConeGeo = new THREE.ConeGeometry(0.35, 0.5, 6);
-const rareStripeGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.12, 8);
+/** Diamond geometry for rare 100pt pellet */
+const rareDiamondGeo = new THREE.OctahedronGeometry(1, 0);
 
 /** Backward compat: treat legacy 'special' as special_10 */
 function pelletType(p: PelletState): 'normal' | 'special_10' | 'rare_100' {
@@ -28,13 +25,13 @@ function pelletType(p: PelletState): 'normal' | 'special_10' | 'rare_100' {
  * Renders pellets using InstancedMesh per type.
  * - Normal: standard colors
  * - Special 10pt: vivid green, emissive glow, slightly larger
- * - Rare 100pt: hot pink, larger, pulsate animation
+ * - Rare 100pt: diamond crystal, rotating, shiny
  */
 export class PelletMeshManager {
   private normalMesh: THREE.InstancedMesh;
   private specialMesh: THREE.InstancedMesh;
   private rareCandyGroup: THREE.Group;
-  private rareCandies: THREE.Group[] = [];
+  private rareCandies: THREE.Mesh[] = [];
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorAttrs: {
     normal: THREE.InstancedBufferAttribute;
@@ -53,30 +50,16 @@ export class PelletMeshManager {
     const specialMat = new THREE.MeshStandardMaterial({
       metalness: 0.1,
       roughness: 0.5,
-      emissive: 0xf0b90b,
+      emissive: 0x008687,
       emissiveIntensity: 0.4,
     });
 
-    const coreMat = new THREE.MeshStandardMaterial({
-      metalness: 0.2,
-      roughness: 0.35,
+    const rareDiamondMat = new THREE.MeshStandardMaterial({
       color: 0xff2bd6,
       emissive: 0xff2bd6,
-      emissiveIntensity: 0.35,
-    });
-    const wrapperMat = new THREE.MeshStandardMaterial({
-      metalness: 0.25,
-      roughness: 0.3,
-      color: 0xf0b90b,
-      emissive: 0xf0b90b,
-      emissiveIntensity: 0.4,
-    });
-    const stripeMat = new THREE.MeshStandardMaterial({
-      metalness: 0.1,
-      roughness: 0.5,
-      color: 0xffffff,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.2,
+      emissiveIntensity: 1.2,
+      metalness: 0.4,
+      roughness: 0.2,
     });
 
     this.normalMesh = new THREE.InstancedMesh(sphereGeo, normalMat, MAX_PELLETS);
@@ -102,30 +85,15 @@ export class PelletMeshManager {
     scene.add(this.rareCandyGroup);
 
     for (let i = 0; i < MAX_RARE_CANDIES; i++) {
-      const group = new THREE.Group();
-      const core = new THREE.Mesh(rareCoreGeo, coreMat);
-      core.scale.set(1.2, 1, 1);
-      group.add(core);
-      const stripe = new THREE.Mesh(rareStripeGeo, stripeMat);
-      stripe.rotation.x = Math.PI / 2;
-      group.add(stripe);
-      const leftCone = new THREE.Mesh(rareConeGeo, wrapperMat);
-      leftCone.position.set(-0.5, 0, 0);
-      leftCone.rotation.z = Math.PI / 2;
-      group.add(leftCone);
-      const rightCone = new THREE.Mesh(rareConeGeo, wrapperMat);
-      rightCone.position.set(0.5, 0, 0);
-      rightCone.rotation.z = -Math.PI / 2;
-      group.add(rightCone);
-      group.visible = false;
-      this.rareCandyGroup.add(group);
-      this.rareCandies.push(group);
+      const mesh = new THREE.Mesh(rareDiamondGeo, rareDiamondMat);
+      mesh.visible = false;
+      this.rareCandyGroup.add(mesh);
+      this.rareCandies.push(mesh);
     }
   }
 
   update(pellets: PelletState[], storeVersion: number): void {
     const now = performance.now() / 1000;
-    const pulsate = 1.075 + 0.075 * Math.sin(now * 2.5);
 
     const normal: PelletState[] = [];
     const special: PelletState[] = [];
@@ -163,18 +131,20 @@ export class PelletMeshManager {
       this.colorAttrs.special.setXYZ(i, color.r, color.g, color.b);
     }
 
-    const baseR = RARE_CANDY_RADIUS;
-    const s = baseR * pulsate;
+    const baseSize = PELLET_RADIUS * 9;
+    const pulse = 1 + Math.sin(now * 4) * 0.15;
+    const diamondScale = baseSize * pulse;
     for (let i = 0; i < this.rareCandies.length; i++) {
-      const group = this.rareCandies[i];
+      const mesh = this.rareCandies[i];
       if (i < rare.length) {
         const p = rare[i];
-        group.visible = true;
-        group.position.set(p.x, baseR, p.z);
-        group.scale.setScalar(s);
-        group.rotation.y = now * 0.3;
+        mesh.visible = true;
+        mesh.position.set(p.x, diamondScale, p.z);
+        mesh.scale.setScalar(diamondScale);
+        mesh.rotation.y += 0.02;
+        mesh.rotation.x += 0.01;
       } else {
-        group.visible = false;
+        mesh.visible = false;
       }
     }
 
