@@ -13,9 +13,9 @@ RUN npm ci
 COPY server server
 COPY shared shared
 
-# Build shared + server if scripts exist
+# Build shared first (optional), then server (required)
 RUN npm run build -w @orbeats/shared || true
-RUN npm run build -w @orbeats/server || true
+RUN npm run build -w @orbeats/server
 
 WORKDIR /app/server
 EXPOSE 3001
