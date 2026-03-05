@@ -12,6 +12,7 @@ import { InputManager } from './input/InputManager.js';
 import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
 import { saveBestScoreIfHigher, addScoresToTopScoresToday } from './ui/ScoreManager.js';
+import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 // ── State ────────────────────────────────────────────
@@ -131,12 +132,33 @@ let lastInputSendTime = 0;
 const joinScreen = document.getElementById('join-screen')!;
 const joinBtn = document.getElementById('join-btn')!;
 const nameInput = document.getElementById('name-input') as HTMLInputElement;
+const joinError = document.getElementById('join-error')!;
+
+function showJoinError(msg: string): void {
+  joinError.textContent = msg;
+  joinError.style.display = '';
+}
+
+function hideJoinError(): void {
+  joinError.textContent = '';
+  joinError.style.display = 'none';
+}
 
 async function startGame(): Promise<void> {
+  hideJoinError();
   playerName = nameInput.value.trim() || 'Anon';
 
+  const rawUrl = getWsUrl();
+  if (!rawUrl) {
+    showJoinError(
+      "Multiplayer server isn't configured for production yet. Set VITE_WS_URL to a wss:// endpoint.",
+    );
+    return;
+  }
+
+  const wsUrl = normalizeWsUrl(rawUrl);
+
   try {
-    const wsUrl = `ws://${window.location.hostname || 'localhost'}:3001`;
     await socket.connect(wsUrl);
     socket.sendJoin(playerName);
 
@@ -144,7 +166,7 @@ async function startGame(): Promise<void> {
     hud.show();
   } catch (e) {
     console.error('Failed to connect:', e);
-    alert('Could not connect to server. Make sure the server is running on port 3001.');
+    showJoinError('Could not connect to server. Make sure the server is running.');
   }
 }
 
