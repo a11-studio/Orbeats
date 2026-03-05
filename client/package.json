@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "vercel-build": "cd .. && npm run build -w @orbeats/shared && npm run build -w @orbeats/client",
     "preview": "vite preview"
   },
   "dependencies": {
