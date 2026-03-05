@@ -12,7 +12,7 @@
     "server": "npm run dev -w server",
     "client": "npm run dev -w client",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
-    "vercel-build": "npm run build -w shared && npm run build -w client"
+    "vercel-build": "rm -rf shared/dist shared/*.tsbuildinfo shared/tsconfig.tsbuildinfo 2>/dev/null; npm run build -w shared && npm run build -w client"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

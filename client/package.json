@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "vercel-build": "cd .. && rm -rf shared/dist shared/*.tsbuildinfo shared/tsconfig.tsbuildinfo 2>/dev/null; npm run build -w @orbeats/shared && npm run build -w @orbeats/client",
+    "vercel-build": "cd .. && npm run vercel-build",
     "preview": "vite preview"
   },
   "dependencies": {
