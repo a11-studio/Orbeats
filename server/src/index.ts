@@ -3,7 +3,7 @@ import { ClientMsgType, type ClientMsg } from '@orbeats/shared';
 import { GameLoop } from './GameLoop.js';
 import { buildWelcome, sendJSON } from './network.js';
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT ?? 3001);
 
 const gameLoop = new GameLoop();
 gameLoop.start();
@@ -11,7 +11,7 @@ gameLoop.start();
 // Ensure bots are spawned initially
 gameLoop.world.updateBots();
 
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' });
 
 let connectionCounter = 0;
 
@@ -81,4 +81,4 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-console.log(`[Server] Orbeats WebSocket server running on ws://localhost:${PORT}`);
+console.log(`[Server] WS listening on ws://0.0.0.0:${PORT}`);

@@ -1,0 +1,25 @@
+# Fly.io app config - run from repo root
+# See: https://fly.io/docs/reference/configuration/
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[services]]
+  internal_port = 3001
+  protocol = "tcp"  
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[services.ports]]
+  port = 443
+  handlers = ["tls", "http"]
+
+  [[services.ports]]
+  port = 80
+  handlers = ["http"]
+
+  [[services.tcp_checks]]
+  grace_period = "5s"
+  interval = "15s"
+  timeout = "2s"
