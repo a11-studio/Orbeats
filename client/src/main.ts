@@ -156,7 +156,7 @@ nameInput.addEventListener('keydown', (e) => {
 // ── Socket handlers ──────────────────────────────────
 socket.onWelcome = (msg) => {
   playerId = msg.playerId;
-  hud.setPlayerId(playerId);
+  hud.setPlayerId(msg.playerId);
   playerMesh.addToScene(sceneManager.scene);
   console.log(`[Game] Joined as ${playerId}, arena=${msg.arena}`);
 };
