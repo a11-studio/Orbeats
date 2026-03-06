@@ -1,3 +1,5 @@
+import { getDailyBotTopScores, type BotLeaderboardEntry } from '../utils/botLeaderboard.js';
+
 const BEST_SCORE_KEY = 'orbeats_best_score';
 const TOP_SCORES_TODAY_KEY = 'orbeats_top_scores_today';
 
@@ -5,6 +7,27 @@ export interface TopScoreEntry {
   name: string;
   score: number;
   timestamp: number;
+}
+
+/** Merge real scores with bot filler, remove name collisions, sort desc, cap at 10. */
+export function mergeTop10(
+  real: TopScoreEntry[],
+  bots: BotLeaderboardEntry[],
+  count = 10,
+): Array<TopScoreEntry | BotLeaderboardEntry> {
+  const realNames = new Set(real.map((e) => e.name));
+  const filteredBots = bots.filter((b) => !realNames.has(b.name));
+  const combined = [...real, ...filteredBots]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count);
+  return combined;
+}
+
+/** Get top scores for display: real first, filled with daily bots if needed. */
+export function getTopScoresTodayWithFallback(count = 10): Array<TopScoreEntry | BotLeaderboardEntry> {
+  const real = getTopScoresToday();
+  const bots = getDailyBotTopScores(count);
+  return mergeTop10(real, bots, count);
 }
 
 function today(): string {
@@ -30,7 +53,7 @@ export function saveBestScoreIfHigher(score: number): void {
   }
 }
 
-export function getTopScoresToday(): TopScoreEntry[] {
+function getTopScoresToday(): TopScoreEntry[] {
   try {
     const raw = localStorage.getItem(TOP_SCORES_TODAY_KEY);
     if (!raw) return [];

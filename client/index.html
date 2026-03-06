@@ -160,6 +160,11 @@
     .death-value { font-size: 36px; font-weight: 700; color: #ff9900; }
     .death-highscores { margin-bottom: 28px; }
     .death-highscores h3 { font-size: 14px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 12px; }
+    /* Toggle mode: no constraint when collapsed. Scroll mode: always scroll. Toggle expanded: scroll. */
+    .death-highscore-list-wrap.score-list-scroll,
+    .death-highscore-list-wrap.score-list-expanded {
+      max-height: 260px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    }
     #death-highscore-list { list-style: none; padding: 0; }
     #death-highscore-list li {
       display: flex; justify-content: space-between; gap: 16px;
@@ -182,6 +187,11 @@
     #death-play-btn:active { transform: scale(0.97); }
     .death-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .death-no-scores { font-size: 14px; opacity: 0.3; font-style: italic; }
+    .death-show-more-btn {
+      margin-top: 8px; padding: 6px 0; font-size: 13px; color: rgba(255,255,255,0.7);
+      background: none; border: none; cursor: pointer; text-decoration: underline;
+    }
+    .death-show-more-btn:hover { color: rgba(255,255,255,0.5); }
   </style>
 </head>
 <body>
@@ -219,7 +229,10 @@
       </div>
       <div class="death-highscores">
         <h3>TOP SCORES TODAY</h3>
-        <ol id="death-highscore-list"></ol>
+        <div class="death-highscore-list-wrap" id="death-highscore-list-wrap">
+          <ol id="death-highscore-list"></ol>
+        </div>
+        <button type="button" class="death-show-more-btn" id="death-show-more-btn" style="display:none;">Show more</button>
       </div>
       <div class="death-buttons">
         <button id="death-play-btn">START NEW GAME</button>

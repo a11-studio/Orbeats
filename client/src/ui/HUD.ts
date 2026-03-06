@@ -1,5 +1,10 @@
 import type { LeaderboardEntry } from '@orbeats/shared';
-import { getTopScoresToday, type TopScoreEntry } from './ScoreManager.js';
+import { getTopScoresTodayWithFallback } from './ScoreManager.js';
+
+/** "toggle" = Show more/less button. "scroll" = scrollable container (max-height 260px in CSS). */
+const SCORE_LIST_MODE: 'toggle' | 'scroll' = 'toggle';
+/** Max visible scores when collapsed. Adjust MAX_VISIBLE here; scroll max-height in index.html .death-highscore-list-wrap. */
+const MAX_VISIBLE = 5;
 
 export class HUD {
   private trophyScoreEl: HTMLElement;
@@ -9,11 +14,17 @@ export class HUD {
   private deathMsg: HTMLElement;
   private deathScoreEl: HTMLElement;
   private deathHighscoreList: HTMLElement;
+  private deathHighscoreListWrap: HTMLElement;
+  private deathShowMoreBtn: HTMLElement;
   private deathPlayBtn: HTMLElement;
   private newGameBtn: HTMLElement;
   private deathPanelTitle: HTMLElement;
 
   private playerId: string = '';
+  private scoreListExpanded: boolean = false;
+  private lastPopulateScores: Array<{ name: string; score: number }> = [];
+  private lastPopulateFinalScore: number = 0;
+  private lastPopulatePlayerName: string = '';
 
   /** Set by the consumer: End Game button (during PLAYING → trigger multiplier flow). */
   onNewGameClick: (() => void) | null = null;
@@ -27,6 +38,8 @@ export class HUD {
     this.deathMsg = document.getElementById('death-msg')!;
     this.deathScoreEl = document.getElementById('death-score-value')!;
     this.deathHighscoreList = document.getElementById('death-highscore-list')!;
+    this.deathHighscoreListWrap = document.getElementById('death-highscore-list-wrap')!;
+    this.deathShowMoreBtn = document.getElementById('death-show-more-btn')!;
     this.deathPlayBtn = document.getElementById('death-play-btn')!;
     this.newGameBtn = document.getElementById('new-game-btn')!;
     this.deathPanelTitle = document.getElementById('death-panel-title')!;
@@ -37,6 +50,10 @@ export class HUD {
 
     this.deathPlayBtn.addEventListener('click', () => {
       this.onStartMatch?.();
+    });
+    this.deathShowMoreBtn.addEventListener('click', () => {
+      this.scoreListExpanded = !this.scoreListExpanded;
+      this.renderScoreList();
     });
   }
 
@@ -137,19 +154,52 @@ export class HUD {
   }
 
   private populateTopScores(finalScore: number, playerName: string): void {
-    const todayScores = getTopScoresToday();
+    const todayScores = getTopScoresTodayWithFallback(10);
+    this.lastPopulateScores = todayScores.map((e) => ({ name: e.name, score: e.score }));
+    this.lastPopulateFinalScore = finalScore;
+    this.lastPopulatePlayerName = playerName;
+    this.scoreListExpanded = false;
+
+    this.deathHighscoreListWrap.classList.toggle('score-list-scroll', SCORE_LIST_MODE === 'scroll');
+    this.deathHighscoreListWrap.classList.remove('score-list-expanded');
+
+    if (SCORE_LIST_MODE === 'toggle' && todayScores.length > MAX_VISIBLE) {
+      this.deathShowMoreBtn.style.display = '';
+    } else {
+      this.deathShowMoreBtn.style.display = 'none';
+    }
+
+    this.renderScoreList();
+  }
+
+  private renderScoreList(): void {
+    const { lastPopulateScores: scores, lastPopulateFinalScore: finalScore, lastPopulatePlayerName: playerName } = this;
     this.deathHighscoreList.innerHTML = '';
-    if (todayScores.length === 0) {
+
+    if (scores.length === 0) {
       const li = document.createElement('li');
       li.className = 'death-no-scores';
       li.textContent = 'No scores today yet';
       this.deathHighscoreList.appendChild(li);
     } else {
-      todayScores.forEach((entry: TopScoreEntry, i) => {
+      const visibleCount =
+        SCORE_LIST_MODE === 'scroll'
+          ? scores.length
+          : this.scoreListExpanded
+            ? scores.length
+            : Math.min(MAX_VISIBLE, scores.length);
+      const visibleScores = scores.slice(0, visibleCount);
+
+      if (SCORE_LIST_MODE === 'toggle' && scores.length > MAX_VISIBLE) {
+        this.deathShowMoreBtn.textContent = this.scoreListExpanded ? 'Show less' : 'Show more';
+        this.deathShowMoreBtn.style.display = '';
+        this.deathHighscoreListWrap.classList.toggle('score-list-expanded', this.scoreListExpanded);
+      }
+
+      visibleScores.forEach((entry, i) => {
         const li = document.createElement('li');
         const isHighlight =
-          entry.name === playerName &&
-          Math.floor(entry.score) === Math.floor(finalScore);
+          entry.name === playerName && Math.floor(entry.score) === Math.floor(finalScore);
         if (isHighlight) li.classList.add('highlight');
         const nameText = isHighlight ? `${this.escapeHtml(entry.name)} (You)` : this.escapeHtml(entry.name);
         li.innerHTML = `
