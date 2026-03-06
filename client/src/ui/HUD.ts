@@ -74,13 +74,38 @@ export class HUD {
     this.trophyScoreEl.textContent = formatted;
   }
 
-  updateLeaderboard(entries: LeaderboardEntry[]): void {
+  /**
+   * In-game leaderboard overlay (visible during gameplay). NOT the Game Over screen.
+   * Game Over UI (death-overlay, death-highscore-list) is separate and unchanged.
+   *
+   * @param options.isMobile - When true and isInGame, render only my row (same style as desktop).
+   * @param options.isInGame - True during active gameplay (PLAYING). False on game over / other screens.
+   * @param options.fallbackScore - When compact and player not in entries yet, show this score.
+   */
+  updateLeaderboard(
+    entries: LeaderboardEntry[],
+    options?: { isMobile?: boolean; isInGame?: boolean; fallbackScore?: number },
+  ): void {
+    const compactMobileGameplay = !!(options?.isMobile && options?.isInGame);
+    const rowsToRender = compactMobileGameplay
+      ? (() => {
+          const meIndex = entries.findIndex((e) => e.id === this.playerId);
+          if (meIndex >= 0) return [entries[meIndex]];
+          return options?.fallbackScore != null
+            ? [{ id: this.playerId, name: 'You', score: options.fallbackScore } as LeaderboardEntry]
+            : [];
+        })()
+      : entries;
+
     this.leaderboardList.innerHTML = '';
-    entries.forEach((entry, i) => {
+    rowsToRender.forEach((entry, i) => {
+      const rank = compactMobileGameplay
+        ? entries.findIndex((e) => e.id === this.playerId) + 1 || '-'
+        : i + 1;
       const li = document.createElement('li');
       if (entry.id === this.playerId) li.classList.add('me');
       li.innerHTML = `
-        <span class="rank">${i + 1}.</span>
+        <span class="rank">${rank}.</span>
         <span class="name">${this.escapeHtml(entry.name)}</span>
         <span class="lb-score">${Math.floor(entry.score).toLocaleString()}</span>
       `;

@@ -59,7 +59,7 @@ wss.on('connection', (ws: WebSocket) => {
 
         case ClientMsgType.NewGame: {
           if (!playerId) break;
-          gameLoop.handleNewGame();
+          gameLoop.handleNewGame(playerId);
           break;
         }
       }

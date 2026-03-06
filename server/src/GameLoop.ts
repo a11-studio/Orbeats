@@ -123,33 +123,23 @@ export class GameLoop {
   }
 
   /**
-   * Full new-game reset: resets world state and notifies all clients.
-   * Clients receive NewGameStarted → clear local state, then get a fresh PelletSync.
+   * Per-player new-game: only the requesting player respawns.
+   * Other players remain in their current state. No global reset.
+   * @param playerId - derived from ws connection (cannot be spoofed)
    */
-  handleNewGame(): void {
-    console.log('[GameLoop] New game requested — resetting world');
+  handleNewGame(playerId: string): void {
+    if (!this.world.resetPlayerForNewGame(playerId)) {
+      console.warn('[GameLoop] New game requested by unknown player:', playerId);
+      return;
+    }
+    console.log('[GameLoop] Per-player new game — respawning', playerId);
 
-    // 1. Reset server world state
-    this.world.resetWorld();
-
-    // 2. Flush any stale pellet events
-    if (this.world.hasPelletEvents()) {
-      this.world.flushPelletEvents();
+    const ws = this.clients.get(playerId);
+    if (ws) {
+      sendJSON(ws, buildNewGameStarted());
     }
 
-    // 3. Broadcast NewGameStarted to all clients
-    const newGameMsg = buildNewGameStarted();
-    for (const ws of this.clients.values()) {
-      sendJSON(ws, newGameMsg);
-    }
-
-    // 4. Send fresh pellet sync to all clients
-    const pelletMsg = buildPelletSync(this.world.pellets.toStateArray());
-    for (const ws of this.clients.values()) {
-      sendJSON(ws, pelletMsg);
-    }
-
-    // 5. Force an immediate snapshot broadcast so clients see the reset entities
+    // Immediate snapshot so all clients see the respawned player's new state
     this.broadcastSnapshots();
   }
 

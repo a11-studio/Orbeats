@@ -7,7 +7,7 @@
   <title>Orbeats</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: manipulation; }
     canvas { display: block; }
 
     /* ── Name tags (HTML overlay) ───────────────────── */
@@ -34,10 +34,9 @@
       z-index: 100;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    #join-screen h1 {
-      font-size: 64px; color: #fff; margin-bottom: 32px;
-      text-shadow: 0 0 30px rgba(255,100,100,0.5);
-      letter-spacing: 4px;
+    #join-screen .logo {
+      height: 64px; width: auto; margin-bottom: 32px;
+      filter: drop-shadow(0 0 30px rgba(255,100,100,0.5));
     }
     #join-screen input {
       width: 280px; padding: 14px 20px; font-size: 18px;
@@ -86,6 +85,8 @@
     #leaderboard-list { list-style: none; }
     #leaderboard-list li {
       padding: 4px 0; display: flex; justify-content: space-between; gap: 12px;
+    }
+    #leaderboard-list li:not(:last-child) {
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     #leaderboard-list li.me { font-weight: 700; }
@@ -196,15 +197,15 @@
 </head>
 <body>
   <!-- Join Screen -->
-  <div id="join-screen">
-    <h1>ORBEATS</h1>
+  <div id="join-screen" data-ui>
+    <img src="/logo.svg" alt="Orbeats" class="logo" />
     <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
-    <button id="join-btn">PLAY</button>
+    <button id="join-btn" data-ui>PLAY</button>
     <p id="join-error" class="join-error" style="display:none;"></p>
   </div>
 
   <!-- HUD -->
-  <div id="hud">
+  <div id="hud" data-ui>
     <div id="leaderboard">
       <h3>LEADERBOARD</h3>
       <ul id="leaderboard-list"></ul>
@@ -215,11 +216,11 @@
       <span id="trophy-score">0</span>
     </div>
 
-    <button id="new-game-btn">END GAME</button>
+    <button id="new-game-btn" data-ui>END GAME</button>
   </div>
 
   <!-- Death / Game Over overlay -->
-  <div id="death-overlay">
+  <div id="death-overlay" data-ui>
     <div class="death-panel">
       <h2 id="death-panel-title">GAME OVER</h2>
       <p id="death-msg">Eaten by someone</p>
@@ -232,10 +233,10 @@
         <div class="death-highscore-list-wrap" id="death-highscore-list-wrap">
           <ol id="death-highscore-list"></ol>
         </div>
-        <button type="button" class="death-show-more-btn" id="death-show-more-btn" style="display:none;">Show more</button>
+        <button type="button" class="death-show-more-btn" id="death-show-more-btn" data-ui style="display:none;">Show more</button>
       </div>
       <div class="death-buttons">
-        <button id="death-play-btn">START NEW GAME</button>
+        <button id="death-play-btn" data-ui>START NEW GAME</button>
       </div>
     </div>
   </div>

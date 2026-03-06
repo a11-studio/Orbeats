@@ -9,10 +9,12 @@ import { Interpolation } from './network/Interpolation.js';
 import { Prediction } from './network/Prediction.js';
 import { PelletStore } from './network/PelletStore.js';
 import { InputManager } from './input/InputManager.js';
+import { setupDoubleTapSplit } from './input/DoubleTapSplit.js';
 import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
 import { saveBestScoreIfHigher, addScoresToTopScoresToday } from './ui/ScoreManager.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
+import { isMobile } from './utils/deviceUtils.js';
 import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 // ── State ────────────────────────────────────────────
@@ -44,6 +46,17 @@ const enemyMeshes = new Map<string, EnemyMesh>();
 
 // HTML overlay name tags (constant pixel size)
 const nameTags = new NameTagManager(sceneManager.camera);
+
+// Double-tap to split on mobile (attached to canvas)
+setupDoubleTapSplit(
+  sceneManager.renderer.domElement,
+  () =>
+    isMobile() &&
+    gamePhase === 'PLAYING' &&
+    playerAlive &&
+    !inputFrozen,
+  () => input.requestSplit(),
+);
 
 // Wire up New Game button (during PLAYING → trigger multiplier flow first)
 hud.onNewGameClick = () => {
@@ -270,7 +283,7 @@ socket.onNewGameStarted = () => {
   mergeAnims.length = 0;
   entityParentIds.clear();
 
-  // Pellet store will be replaced by the PelletSync that follows immediately
+  // Pellet store unchanged (per-player respawn; pellets not regenerated)
 };
 
 // ── Pellet event handlers ────────────────────────────
@@ -304,7 +317,7 @@ function gameLoop(now: number): void {
     const displayScore = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
-    hud.updateLeaderboard(interpolation.leaderboard);
+    hud.updateLeaderboard(interpolation.leaderboard, { isMobile: isMobile(), isInGame: false });
     sceneManager.render();
     return;
   }
@@ -556,7 +569,11 @@ function gameLoop(now: number): void {
 
   // ── 9. HUD ─────────────────────────────────────────
   hud.updateScore(playerScore);
-  hud.updateLeaderboard(interpolation.leaderboard);
+  hud.updateLeaderboard(interpolation.leaderboard, {
+    isMobile: isMobile(),
+    isInGame: true,
+    fallbackScore: playerScore,
+  });
 
   // ── 10. Render ─────────────────────────────────────
   sceneManager.render();

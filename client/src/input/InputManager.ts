@@ -62,6 +62,11 @@ export class InputManager {
     return false;
   }
 
+  /** Request split (e.g. from double-tap gesture). Same effect as spacebar. */
+  requestSplit(): void {
+    this.splitRequested = true;
+  }
+
   /**
    * Update direction based on current mouse position, player position, and camera.
    */

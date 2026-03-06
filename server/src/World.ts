@@ -428,7 +428,31 @@ export class World {
   }
 
   /**
-   * Full new-game reset:
+   * Per-player new-game reset: only the requesting player respawns.
+   * Other players, bots, pellets remain unchanged.
+   * @returns true if player was found and reset
+   */
+  resetPlayerForNewGame(playerId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+
+    // 1. Remove this player's split cells
+    for (const [cellId, cell] of this.splitCells) {
+      if (cell.parentId === playerId) {
+        this.splitCells.delete(cellId);
+      }
+    }
+
+    // 2. Remove from respawn queue if present
+    this.respawnQueue = this.respawnQueue.filter((r) => r.player.id !== playerId);
+
+    // 3. Reset only this player
+    player.resetForNewGame();
+    return true;
+  }
+
+  /**
+   * Full new-game reset (legacy / unused after per-player respawn):
    *   1. Clear all split cells
    *   2. Clear respawn queue
    *   3. Reset every human player with random mass

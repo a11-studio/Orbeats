@@ -34,7 +34,7 @@ export const MERGE_OVERLAP_GRACE = 5000; // ms after merge cooldown → force-me
 
 // ── Mass decay (prevents infinite growth) ─────────────────
 export const MASS_DECAY_THRESHOLD = 2000; // decay only applies above this mass
-export const MASS_DECAY_PER_1000 = 1; // at 2000 mass → 2 pts/s, at 5000 → 5 pts/s
+export const MASS_DECAY_PER_1000 = 3; // at 2000 mass → 6 pts/s, at 5000 → 15 pts/s
 
 // ── Server tick rates ─────────────────────────────────
 export const SERVER_TICK_RATE = 20; // Hz simulation
@@ -59,7 +59,7 @@ export function massToSpeed(mass: number): number {
   return BASE_SPEED / (1 + radius * 0.006);
 }
 
-/** Mass decay per second when above threshold. E.g. 2000 mass → 2 pts/s, 5000 → 5 pts/s */
+/** Mass decay per second when above threshold. E.g. 2000 mass → 6 pts/s, 5000 → 15 pts/s */
 export function getMassDecayPerSecond(mass: number): number {
   if (mass <= MASS_DECAY_THRESHOLD) return 0;
   return (mass / 1000) * MASS_DECAY_PER_1000;
