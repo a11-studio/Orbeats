@@ -1,6 +1,8 @@
 # Fly.io app config - run from repo root
 # See: https://fly.io/docs/reference/configuration/
 
+app = "orbeats"
+
 [build]
   dockerfile = "Dockerfile"
 

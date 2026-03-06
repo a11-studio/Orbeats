@@ -24,7 +24,7 @@ function showWebGLError(): void {
     position: fixed; inset: 0; z-index: 99999;
     display: flex; align-items: center; justify-content: center; flex-direction: column;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Mona Sans', sans-serif;
     color: #fff; text-align: center; padding: 32px;
   `;
   overlay.innerHTML = `

@@ -51,7 +51,7 @@ export class MultiplierOverlay {
       display: none; align-items: center; justify-content: center;
       background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      z-index: 60; font-family: 'Segoe UI', sans-serif;
+      z-index: 60; font-family: 'Mona Sans', sans-serif;
     `;
     this.bar = this.container.querySelector('#multiplier-bar')!;
     this.segmentsEl = this.bar.querySelector('.multiplier-segments')!;

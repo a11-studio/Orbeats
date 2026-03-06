@@ -9,7 +9,8 @@ COPY shared/package.json shared/package.json
 # Install all deps with workspaces so @orbeats/shared is resolved locally
 RUN npm ci
 
-# Copy sources
+# Copy sources (tsconfig.base.json required by shared/tsconfig.json)
+COPY tsconfig.base.json ./
 COPY server server
 COPY shared shared
 
