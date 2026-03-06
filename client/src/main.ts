@@ -1,6 +1,13 @@
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import * as THREE from 'three';
 import { SceneManager } from './scene/SceneManager.js';
 import { PlayerMesh } from './scene/PlayerMesh.js';
+
+// Vercel Web Analytics — pageviews only, no-op in dev
+createRoot(document.getElementById('analytics-root')!).render(createElement(Analytics));
+
 import { EnemyMesh } from './scene/EnemyMesh.js';
 import { PelletMeshManager } from './scene/PelletMesh.js';
 import { NameTagManager } from './scene/NameLabel.js';
