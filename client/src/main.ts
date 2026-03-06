@@ -86,6 +86,7 @@ function triggerGameOverFlow(): void {
     frozenFinalScore = multipliedScore;
     addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
     saveBestScoreIfHigher(multipliedScore);
+    if (playerId) socket.sendGameOver(multipliedScore, playerName, sessionId);
     multiplierOverlay.hide();
     gamePhase = 'GAME_OVER';
     hud.showDeathWithMultiplier(
@@ -230,6 +231,7 @@ socket.onDeath = (msg) => {
     playerScore = frozenFinalScore;
     addScoresToTopScoresToday([{ name: playerName, score: frozenFinalScore }]);
     saveBestScoreIfHigher(frozenFinalScore);
+    if (playerId) socket.sendGameOver(frozenFinalScore, playerName, sessionId);
     gamePhase = 'GAME_OVER';
     multiplierOverlay.hide();
     hud.showDeathWithMultiplier(
@@ -297,6 +299,7 @@ socket.onNewGameStarted = () => {
 // ── Room session ended (timer expiry → Game Over for all) ─────────
 socket.onRoomSessionEnded = (msg) => {
   if (msg.sessionId <= sessionId) return; // Guard against duplicate
+  const endedSessionId = msg.sessionId - 1; // Session we just finished (server sends new id)
   sessionId = msg.sessionId;
   sessionEndsAt = msg.sessionEndsAt;
 
@@ -339,6 +342,7 @@ socket.onRoomSessionEnded = (msg) => {
     frozenFinalScore = multipliedScore;
     addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
     saveBestScoreIfHigher(multipliedScore);
+    if (playerId) socket.sendGameOver(multipliedScore, playerName, endedSessionId);
     multiplierOverlay.hide();
     gamePhase = 'GAME_OVER';
     hud.showDeathWithMultiplier(

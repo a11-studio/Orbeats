@@ -122,4 +122,13 @@ export class GameSocket {
   sendNewGame(): void {
     this.send({ type: ClientMsgType.NewGame });
   }
+
+  sendGameOver(finalScore: number, playerName: string, sessionId: number): void {
+    this.send({
+      type: ClientMsgType.GameOver,
+      finalScore,
+      playerName,
+      sessionId,
+    });
+  }
 }

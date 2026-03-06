@@ -6,6 +6,7 @@ export enum ClientMsgType {
   Input = 'input',
   Split = 'split',
   NewGame = 'new_game_request',
+  GameOver = 'game_over',
 }
 
 export enum ServerMsgType {
@@ -40,7 +41,15 @@ export interface NewGameMsg {
   type: ClientMsgType.NewGame;
 }
 
-export type ClientMsg = JoinMsg | InputMsg | SplitMsg | NewGameMsg;
+/** Client sends when game ends (after multiplier). Triggers server-side score write if gates pass. */
+export interface GameOverMsg {
+  type: ClientMsgType.GameOver;
+  finalScore: number;
+  playerName: string;
+  sessionId: number;
+}
+
+export type ClientMsg = JoinMsg | InputMsg | SplitMsg | NewGameMsg | GameOverMsg;
 
 // ── Server → Client messages ─────────────────────────
 export interface WelcomeMsg {
