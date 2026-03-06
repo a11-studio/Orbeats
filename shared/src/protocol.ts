@@ -17,6 +17,7 @@ export enum ServerMsgType {
   PelletSpawned = 'pellet_spawned',
   PelletSync = 'pellet_sync',
   NewGameStarted = 'new_game_started',
+  RoomSessionEnded = 'room_session_ended',
 }
 
 // ── Client → Server messages ─────────────────────────
@@ -46,6 +47,9 @@ export interface WelcomeMsg {
   type: ServerMsgType.Welcome;
   playerId: string;
   arena: number; // ARENA_SIZE
+  /** Unix ms when room session ends. Server-authoritative, shared by all players. */
+  sessionEndsAt: number;
+  sessionId: number;
 }
 
 export interface SnapshotMsg {
@@ -87,9 +91,18 @@ export interface PelletSyncMsg {
   pellets: PelletState[];
 }
 
-/** Sent to all clients when a new game (full match reset) begins */
+/** Sent to client when their new game / respawn begins (per-player only) */
 export interface NewGameStartedMsg {
   type: ServerMsgType.NewGameStarted;
+  sessionStartAt?: number;
+}
+
+/** Room-wide session end when timer expires. Triggers Game Over for all players. */
+export interface RoomSessionEndedMsg {
+  type: ServerMsgType.RoomSessionEnded;
+  sessionId: number;
+  /** Unix ms when next session ends (server starts new session immediately). */
+  sessionEndsAt: number;
 }
 
 export type ServerMsg =
@@ -100,4 +113,5 @@ export type ServerMsg =
   | PelletEatenMsg
   | PelletSpawnedMsg
   | PelletSyncMsg
-  | NewGameStartedMsg;
+  | NewGameStartedMsg
+  | RoomSessionEndedMsg;

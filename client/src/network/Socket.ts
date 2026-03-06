@@ -11,6 +11,7 @@ import {
   type PelletSpawnedMsg,
   type PelletSyncMsg,
   type NewGameStartedMsg,
+  type RoomSessionEndedMsg,
 } from '@orbeats/shared';
 
 export type SnapshotHandler = (msg: SnapshotMsg) => void;
@@ -21,6 +22,7 @@ export type PelletEatenHandler = (msg: PelletEatenMsg) => void;
 export type PelletSpawnedHandler = (msg: PelletSpawnedMsg) => void;
 export type PelletSyncHandler = (msg: PelletSyncMsg) => void;
 export type NewGameStartedHandler = (msg: NewGameStartedMsg) => void;
+export type RoomSessionEndedHandler = (msg: RoomSessionEndedMsg) => void;
 
 export class GameSocket {
   private ws: WebSocket | null = null;
@@ -34,6 +36,7 @@ export class GameSocket {
   onPelletSpawned: PelletSpawnedHandler | null = null;
   onPelletSync: PelletSyncHandler | null = null;
   onNewGameStarted: NewGameStartedHandler | null = null;
+  onRoomSessionEnded: RoomSessionEndedHandler | null = null;
 
   get connected(): boolean {
     return this._connected;
@@ -86,6 +89,9 @@ export class GameSocket {
               break;
             case ServerMsgType.NewGameStarted:
               this.onNewGameStarted?.(msg);
+              break;
+            case ServerMsgType.RoomSessionEnded:
+              this.onRoomSessionEnded?.(msg);
               break;
           }
         } catch (e) {

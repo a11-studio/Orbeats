@@ -22,6 +22,9 @@ export const EAT_RATIO = 1.15; // must be 15% larger to eat
 // ── Respawn ────────────────────────────────────────────
 export const RESPAWN_DELAY = 2000; // ms
 
+// ── Session timer ─────────────────────────────────────
+export const SESSION_SECONDS = 180; // 3 minutes per session
+
 // ── Split mechanic ────────────────────────────────────
 export const SPLIT_MIN_MASS = 20; // minimum mass per blob to split (each half >= 10)
 export const SPLIT_MERGE_DELAY = 8000; // ms before halves CAN merge (overlap required)

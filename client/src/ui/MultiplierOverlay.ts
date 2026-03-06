@@ -71,6 +71,7 @@ export class MultiplierOverlay {
     `;
     this.sessionScoreEl.style.cssText = `
       color: #ff9900; font-size: 42px; font-weight: 700; margin-bottom: 24px;
+      font-variation-settings: "wdth" 125;
     `;
     (this.container.querySelector('.multiplier-motivation') as HTMLElement).style.cssText = `
       color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 6px;
@@ -95,6 +96,7 @@ export class MultiplierOverlay {
     const segStyle = (bg: string, glow?: string) => `
       flex: 1; display: flex; align-items: center; justify-content: center;
       border-radius: 12px; font-size: 17px; font-weight: 700; letter-spacing: 0.03em;
+      font-variation-settings: "wdth" 125;
       background: ${bg}; color: rgba(255,255,255,0.95);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.15)${glow ? `, ${glow}` : ''};
     `;

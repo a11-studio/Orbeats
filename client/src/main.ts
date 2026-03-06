@@ -12,6 +12,7 @@ import { InputManager } from './input/InputManager.js';
 import { setupDoubleTapSplit } from './input/DoubleTapSplit.js';
 import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
+import { SessionTimeline } from './ui/SessionTimeline.js';
 import { saveBestScoreIfHigher, addScoresToTopScoresToday } from './ui/ScoreManager.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
@@ -29,6 +30,9 @@ let gamePhase: GamePhase = 'PLAYING';
 let frozenFinalScore: number = 0;
 let playerFrozen: boolean = false;
 let sessionLocked: boolean = false;
+/** Server-authoritative session end (unix ms). Set on Welcome / RoomSessionEnded. Shared by all players in room. */
+let sessionEndsAt: number = 0;
+let sessionId: number = 0;
 
 // ── Initialize modules ───────────────────────────────
 const sceneManager = new SceneManager();
@@ -39,6 +43,7 @@ const pelletStore = new PelletStore();
 const input = new InputManager();
 const hud = new HUD();
 const multiplierOverlay = new MultiplierOverlay();
+const sessionTimeline = new SessionTimeline();
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
@@ -58,8 +63,8 @@ setupDoubleTapSplit(
   () => input.requestSplit(),
 );
 
-// Wire up New Game button (during PLAYING → trigger multiplier flow first)
-hud.onNewGameClick = () => {
+// Wire up End Game (timeline hover-morph / mobile menu) → multiplier flow first
+sessionTimeline.onEndGameClick = () => {
   if (gamePhase !== 'PLAYING') return;
   triggerGameOverFlow();
 };
@@ -193,6 +198,9 @@ socket.onWelcome = (msg) => {
   playerId = msg.playerId;
   hud.setPlayerId(msg.playerId);
   playerMesh.addToScene(sceneManager.scene);
+  sessionEndsAt = msg.sessionEndsAt;
+  sessionId = msg.sessionId;
+  sessionTimeline.setVisible(true);
   console.log(`[Game] Joined as ${playerId}, arena=${msg.arena}`);
 };
 
@@ -241,7 +249,7 @@ socket.onRespawn = () => {
 };
 
 socket.onNewGameStarted = () => {
-  console.log('[Game] New game started — resetting client state');
+  console.log('[Game] New game started — resetting client state (per-player respawn)');
 
   // Reset local state
   gamePhase = 'PLAYING';
@@ -286,6 +294,64 @@ socket.onNewGameStarted = () => {
   // Pellet store unchanged (per-player respawn; pellets not regenerated)
 };
 
+// ── Room session ended (timer expiry → Game Over for all) ─────────
+socket.onRoomSessionEnded = (msg) => {
+  if (msg.sessionId <= sessionId) return; // Guard against duplicate
+  sessionId = msg.sessionId;
+  sessionEndsAt = msg.sessionEndsAt;
+
+  console.log('[Game] Session ended — showing Game Over');
+  if (sessionLocked) return;
+  sessionLocked = true;
+
+  const baseScore = playerScore;
+  frozenFinalScore = baseScore;
+  playerFrozen = true;
+  inputFrozen = true;
+  gamePhase = 'MULTIPLIER';
+  deathKillerName = 'Session ended';
+  deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  socket.sendInput(0, 0, prediction.nextSeq());
+
+  // Reset local state so we're clean for Start New Game
+  interpolation.reset();
+  prediction.reset();
+  smoothedVelX = 0;
+  smoothedVelZ = 0;
+  for (const [id, enemy] of enemyMeshes) {
+    enemy.removeFromScene(sceneManager.scene);
+    enemyMeshes.delete(id);
+  }
+  for (const [id, mesh] of splitMeshes) {
+    mesh.removeFromScene(sceneManager.scene);
+    splitMeshes.delete(id);
+  }
+  nameTags.clear();
+  for (const anim of mergeAnims) {
+    sceneManager.scene.remove(anim.object);
+  }
+  mergeAnims.length = 0;
+  entityParentIds.clear();
+
+  multiplierOverlay.mount();
+  multiplierOverlay.show(frozenFinalScore, (multiplier) => {
+    const multipliedScore = Math.floor(frozenFinalScore * multiplier);
+    frozenFinalScore = multipliedScore;
+    addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
+    saveBestScoreIfHigher(multipliedScore);
+    multiplierOverlay.hide();
+    gamePhase = 'GAME_OVER';
+    hud.showDeathWithMultiplier(
+      deathKillerName,
+      multiplier,
+      baseScore,
+      multipliedScore,
+      playerName,
+      deathTopScores,
+    );
+  });
+};
+
 // ── Pellet event handlers ────────────────────────────
 socket.onPelletSync = (msg) => {
   pelletStore.sync(msg.pellets);
@@ -314,12 +380,20 @@ function gameLoop(now: number): void {
   }
 
   if (sessionLocked || gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD' || gamePhase === 'MULTIPLIER') {
+    sessionTimeline.setVisible(false);
     const displayScore = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
     hud.updateLeaderboard(interpolation.leaderboard, { isMobile: isMobile(), isInGame: false });
     sceneManager.render();
     return;
+  }
+
+  sessionTimeline.setVisible(true);
+
+  // ── Session timer (PLAYING only) — server-authoritative; no client expiry trigger ─────────
+  if (sessionEndsAt > 0) {
+    sessionTimeline.update(sessionEndsAt);
   }
 
   // ── 1. Update interpolation for remote entities ────

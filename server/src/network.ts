@@ -9,6 +9,7 @@ import {
   type PelletSpawnedMsg,
   type PelletSyncMsg,
   type NewGameStartedMsg,
+  type RoomSessionEndedMsg,
   type ServerMsg,
   type PelletState,
   ARENA_SIZE,
@@ -21,11 +22,21 @@ export function sendJSON(ws: WebSocket, msg: ServerMsg): void {
   }
 }
 
-export function buildWelcome(playerId: string): WelcomeMsg {
+export function buildWelcome(playerId: string, sessionEndsAt: number, sessionId: number): WelcomeMsg {
   return {
     type: ServerMsgType.Welcome,
     playerId,
     arena: ARENA_SIZE,
+    sessionEndsAt,
+    sessionId,
+  };
+}
+
+export function buildRoomSessionEnded(sessionId: number, sessionEndsAt: number): RoomSessionEndedMsg {
+  return {
+    type: ServerMsgType.RoomSessionEnded,
+    sessionId,
+    sessionEndsAt,
   };
 }
 

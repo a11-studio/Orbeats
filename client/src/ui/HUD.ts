@@ -17,7 +17,6 @@ export class HUD {
   private deathHighscoreListWrap: HTMLElement;
   private deathShowMoreBtn: HTMLElement;
   private deathPlayBtn: HTMLElement;
-  private newGameBtn: HTMLElement;
   private deathPanelTitle: HTMLElement;
 
   private playerId: string = '';
@@ -41,12 +40,7 @@ export class HUD {
     this.deathHighscoreListWrap = document.getElementById('death-highscore-list-wrap')!;
     this.deathShowMoreBtn = document.getElementById('death-show-more-btn')!;
     this.deathPlayBtn = document.getElementById('death-play-btn')!;
-    this.newGameBtn = document.getElementById('new-game-btn')!;
     this.deathPanelTitle = document.getElementById('death-panel-title')!;
-
-    this.newGameBtn.addEventListener('click', () => {
-      this.onNewGameClick?.();
-    });
 
     this.deathPlayBtn.addEventListener('click', () => {
       this.onStartMatch?.();

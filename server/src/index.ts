@@ -32,8 +32,9 @@ wss.on('connection', (ws: WebSocket) => {
           gameLoop.world.addPlayer(playerId, name);
           gameLoop.registerClient(playerId, ws);
 
-          // Send welcome
-          sendJSON(ws, buildWelcome(playerId));
+          // Send welcome (includes room session timing)
+          const { sessionEndsAt, sessionId } = gameLoop.getSessionTiming();
+          sendJSON(ws, buildWelcome(playerId, sessionEndsAt, sessionId));
 
           // Send full pellet state immediately on join
           gameLoop.sendInitialPellets(ws);

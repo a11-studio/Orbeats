@@ -8,7 +8,7 @@
   <title>Orbeats</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: manipulation; font-family: 'Mona Sans', sans-serif; font-variation-settings: "wdth" 125; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: manipulation; font-family: 'Mona Sans', sans-serif; font-variation-settings: "wdth" 100; }
     canvas { display: block; }
 
     /* ── Name tags (HTML overlay) ───────────────────── */
@@ -50,6 +50,7 @@
     #join-screen input:focus { border-color: rgba(255,100,100,0.6); }
     #join-screen button {
       width: 280px; padding: 14px; font-size: 20px; font-weight: bold;
+      font-variation-settings: "wdth" 125;
       border: none; border-radius: 30px; cursor: pointer;
       background: linear-gradient(135deg, #ff4444, #ff6b35);
       color: #fff; letter-spacing: 2px;
@@ -67,14 +68,111 @@
     #hud.active { display: block; }
 
     #trophy-badge {
-      position: absolute; bottom: 24px; left: 24px;
       display: flex; align-items: center; gap: 8px;
       background: linear-gradient(135deg, #ff9900, #ff6600);
       padding: 8px 16px; border-radius: 24px;
       color: #fff; font-size: 15px; font-weight: 700;
       box-shadow: 0 4px 16px rgba(255,153,0,0.4);
     }
+    #trophy-score { font-variation-settings: "wdth" 125; }
     #trophy-badge svg { width: 20px; height: 20px; fill: #fff; }
+
+    /* ── Bottom-left: trophy ─────────────────────────────── */
+    #bottom-left-area {
+      position: absolute; bottom: 24px; left: 24px;
+      display: flex; align-items: center; gap: 12px;
+      pointer-events: none;
+    }
+    #bottom-left-area > * { pointer-events: auto; }
+
+    /* ── Bottom-right: session timeline (progress bar + End Game hover) ─── */
+    #bottom-right-area {
+      position: absolute; bottom: 24px; right: 24px;
+      display: flex; align-items: center; justify-content: flex-end;
+      pointer-events: none;
+    }
+    #bottom-right-area > * { pointer-events: auto; }
+    #session-timeline-wrap {
+      display: flex; align-items: center; gap: 8px;
+    }
+    #session-timeline {
+      position: relative;
+      width: 160px; height: 36px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      cursor: pointer;
+      transition: background 0.25s, border-color 0.25s, transform 0.25s;
+    }
+    #session-timeline:hover {
+      background: rgba(0,0,0,0.65);
+      border-color: rgba(255,255,255,0.25);
+    }
+    #session-timeline.morph-end-game {
+      width: 120px; min-width: 120px;
+      background: rgba(0, 0, 0, 0.75);
+      border-color: rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #session-timeline.morph-end-game .timeline-bar-wrap,
+    #session-timeline.morph-end-game .timeline-label { display: none; }
+    #session-timeline.morph-end-game .end-game-label { display: block; }
+    .timeline-bar-wrap {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 56px 0 12px;
+      gap: 4px;
+    }
+    .timeline-bar-bg {
+      height: 6px; background: rgba(255,255,255,0.2);
+      border-radius: 3px; overflow: hidden;
+    }
+    .timeline-bar-fill {
+      height: 100%; background: #ff8a00;
+      border-radius: 3px;
+      transition: width 0.25s, background 0.25s;
+    }
+    .timeline-bar-fill.warn {
+      background: #e53935;
+      animation: timeline-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes timeline-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+    .timeline-label {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      font-variation-settings: "wdth" 125;
+    }
+    .end-game-label {
+      display: none;
+      font-size: 12px; font-weight: 600;
+      color: #fff; letter-spacing: 1px;
+      font-variation-settings: "wdth" 125;
+    }
+    #session-timeline-mobile-menu {
+      display: none;
+      width: 32px; height: 36px;
+      font-variation-settings: "wdth" 125;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      color: #fff; font-size: 18px;
+      cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    @media (hover: hover) {
+      #session-timeline-mobile-menu { display: none !important; }
+    }
+    @media (hover: none) {
+      #session-timeline-mobile-menu { display: flex; }
+    }
 
     #leaderboard {
       position: absolute; top: 20px; right: 20px;
@@ -104,30 +202,9 @@
       background-clip: text;
       color: transparent;
     }
-    #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; }
+    #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; font-variation-settings: "wdth" 125; }
     #leaderboard-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #leaderboard-list li .lb-score { font-weight: 600; }
-
-    /* ── New Game button (bottom-right) ──────────── */
-    #new-game-btn {
-      position: absolute; bottom: 24px; right: 24px;
-      padding: 8px 20px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(8px);
-      color: #fff; font-size: 12px; font-weight: 600;
-      letter-spacing: 1px;
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
-      cursor: pointer;
-      pointer-events: auto;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-    }
-    #new-game-btn:hover {
-      background: rgba(255,68,68,0.45);
-      border-color: rgba(255,68,68,0.5);
-      transform: scale(1.05);
-    }
-    #new-game-btn:active { transform: scale(0.97); }
+    #leaderboard-list li .lb-score { font-weight: 600; font-variation-settings: "wdth" 125; }
 
     /* ── Death / Game Over overlay ─────────────────── */
     #death-overlay {
@@ -159,7 +236,7 @@
       margin-bottom: 24px;
     }
     .death-label { font-size: 16px; opacity: 0.5; }
-    .death-value { font-size: 36px; font-weight: 700; color: #ff9900; }
+    .death-value { font-size: 36px; font-weight: 700; color: #ff9900; font-variation-settings: "wdth" 125; }
     .death-highscores { margin-bottom: 28px; }
     .death-highscores h3 { font-size: 14px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 12px; }
     /* Toggle mode: no constraint when collapsed. Scroll mode: always scroll. Toggle expanded: scroll. */
@@ -173,12 +250,13 @@
       padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
       font-size: 15px;
     }
-    #death-highscore-list li .hs-rank { opacity: 0.4; min-width: 24px; text-align: left; }
+    #death-highscore-list li .hs-rank { opacity: 0.4; min-width: 24px; text-align: left; font-variation-settings: "wdth" 125; }
     #death-highscore-list li .hs-name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #death-highscore-list li .hs-score { font-weight: 600; color: #ff9900; }
+    #death-highscore-list li .hs-score { font-weight: 600; color: #ff9900; font-variation-settings: "wdth" 125; }
     #death-highscore-list li.highlight { color: #ff4444; font-weight: 700; }
     #death-play-btn {
       padding: 14px 40px; font-size: 18px; font-weight: 700;
+      font-variation-settings: "wdth" 125;
       border: none; border-radius: 30px; cursor: pointer;
       background: linear-gradient(135deg, #ff4444, #ff6b35);
       color: #fff; letter-spacing: 2px;
@@ -212,12 +290,26 @@
       <ul id="leaderboard-list"></ul>
     </div>
 
-    <div id="trophy-badge">
-      <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7h2c0-1.66 1.34-3 3-3s3 1.34 3 3h2c0-2.76-2.24-5-5-5zM5 7c-1.1 0-2 .9-2 2v2c0 2.76 2.24 5 5 5v2H6v2h12v-2h-2v-2c2.76 0 5-2.24 5-5V9c0-1.1-.9-2-2-2h-1.18C17.93 7.31 18 7.65 18 8H6c0-.35.07-.69.18-1H5zm0 2h1v2c0 1.66 1.34 3 3 3h6c1.66 0 3-1.34 3-3V9h1v2c0 1.66-1.34 3-3 3H8c-1.66 0-3-1.34-3-3V9z"/></svg>
-      <span id="trophy-score">0</span>
+    <div id="bottom-left-area">
+      <div id="trophy-badge">
+        <svg viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7h2c0-1.66 1.34-3 3-3s3 1.34 3 3h2c0-2.76-2.24-5-5-5zM5 7c-1.1 0-2 .9-2 2v2c0 2.76 2.24 5 5 5v2H6v2h12v-2h-2v-2c2.76 0 5-2.24 5-5V9c0-1.1-.9-2-2-2h-1.18C17.93 7.31 18 7.65 18 8H6c0-.35.07-.69.18-1H5zm0 2h1v2c0 1.66 1.34 3 3 3h6c1.66 0 3-1.34 3-3V9h1v2c0 1.66-1.34 3-3 3H8c-1.66 0-3-1.34-3-3V9z"/></svg>
+        <span id="trophy-score">0</span>
+      </div>
     </div>
-
-    <button id="new-game-btn" data-ui>END GAME</button>
+    <div id="bottom-right-area">
+      <div id="session-timeline-wrap">
+        <div id="session-timeline" data-ui>
+          <div class="timeline-bar-wrap">
+            <div class="timeline-bar-bg">
+              <div class="timeline-bar-fill" id="timeline-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <span class="timeline-label" id="timeline-label">3:00</span>
+          <span class="end-game-label">END GAME</span>
+        </div>
+        <button type="button" id="session-timeline-mobile-menu" data-ui title="End game">⋯</button>
+      </div>
+    </div>
   </div>
 
   <!-- Death / Game Over overlay -->

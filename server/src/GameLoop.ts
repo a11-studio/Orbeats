@@ -1,4 +1,4 @@
-import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS } from '@orbeats/shared';
+import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS, SESSION_SECONDS } from '@orbeats/shared';
 import type { WebSocket } from 'ws';
 import { World } from './World.js';
 import {
@@ -9,17 +9,22 @@ import {
   buildPelletSpawned,
   buildPelletSync,
   buildNewGameStarted,
+  buildRoomSessionEnded,
   sendJSON,
 } from './network.js';
 
 /** Ticks between full pellet syncs (safety net against missed events) */
 const PELLET_FULL_SYNC_INTERVAL = 300; // ~15 seconds at 20Hz
+const SESSION_MS = SESSION_SECONDS * 1000;
 
 export class GameLoop {
   world: World = new World();
   private tick: number = 0;
   private clients: Map<string, WebSocket> = new Map();
   private clientSeqs: Map<string, number> = new Map();
+
+  private sessionEndsAt: number = 0;
+  private sessionId: number = 0;
 
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private broadcastInterval: ReturnType<typeof setInterval> | null = null;
@@ -33,6 +38,24 @@ export class GameLoop {
       const dt = SERVER_TICK_MS / 1000;
       this.tick++;
       this.world.tick(dt, now);
+
+      // Room session timer: when expired, reset world and broadcast to all
+      if (this.sessionEndsAt > 0 && now >= this.sessionEndsAt) {
+        this.sessionEndsAt = now + SESSION_MS;
+        this.sessionId++;
+        this.world.resetWorld();
+        if (this.world.hasPelletEvents()) this.world.flushPelletEvents();
+        const msg = buildRoomSessionEnded(this.sessionId, this.sessionEndsAt);
+        for (const ws of this.clients.values()) {
+          sendJSON(ws, msg);
+        }
+        const pelletMsg = buildPelletSync(this.world.pellets.toStateArray());
+        for (const ws of this.clients.values()) {
+          sendJSON(ws, pelletMsg);
+        }
+        this.broadcastSnapshots();
+        console.log('[GameLoop] Room session expired — reset for all');
+      }
 
       // Broadcast pellet events immediately after each tick
       this.broadcastPelletEvents();
@@ -61,11 +84,24 @@ export class GameLoop {
   registerClient(id: string, ws: WebSocket): void {
     this.clients.set(id, ws);
     this.clientSeqs.set(id, 0);
+    if (this.sessionEndsAt <= 0) {
+      this.sessionEndsAt = Date.now() + SESSION_MS;
+      this.sessionId = 1;
+      console.log('[GameLoop] Session started (first player joined)');
+    }
+  }
+
+  getSessionTiming(): { sessionEndsAt: number; sessionId: number } {
+    return { sessionEndsAt: this.sessionEndsAt, sessionId: this.sessionId };
   }
 
   unregisterClient(id: string): void {
     this.clients.delete(id);
     this.clientSeqs.delete(id);
+    if (this.clients.size === 0) {
+      this.sessionEndsAt = 0;
+      console.log('[GameLoop] Room empty — session cleared');
+    }
   }
 
   updateClientSeq(id: string, seq: number): void {
