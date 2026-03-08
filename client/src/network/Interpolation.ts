@@ -19,7 +19,8 @@ interface BufferedSnapshot {
  */
 export class Interpolation {
   private buffer: BufferedSnapshot[] = [];
-  private readonly BUFFER_MS = 100;
+  /** Render delay: higher = smoother under jitter, lower = more responsive. 120ms helps production. */
+  private readonly BUFFER_MS = 120;
 
   // ── Interpolated state for remote entities ─────────
   entities: EntityState[] = [];

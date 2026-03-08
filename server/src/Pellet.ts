@@ -226,13 +226,13 @@ export class PelletManager {
     return [...this.pellets.values()];
   }
 
-  /** Get pellets in entity's cell + 8 neighbours. For spatial hashing collision. */
+  /** Get pellets in entity's cell + neighbours. 5x5 covers max entity radius ~55. */
   getPelletsNear(x: number, z: number): Pellet[] {
     const cx = Math.floor((x + ARENA_HALF) / CELL_SIZE);
     const cz = Math.floor((z + ARENA_HALF) / CELL_SIZE);
     const out: Pellet[] = [];
-    for (let dx = -1; dx <= 1; dx++) {
-      for (let dz = -1; dz <= 1; dz++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
         const key = `${cx + dx},${cz + dz}`;
         const list = this.grid.get(key);
         if (list) out.push(...list);
