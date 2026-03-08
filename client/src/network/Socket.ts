@@ -27,9 +27,12 @@ export type RoomSessionEndedHandler = (msg: RoomSessionEndedMsg) => void;
 export class GameSocket {
   private ws: WebSocket | null = null;
   private _connected: boolean = false;
+  private connectPromise: Promise<void> | null = null;
 
   onSnapshot: SnapshotHandler | null = null;
   onWelcome: WelcomeHandler | null = null;
+  /** Called when WS opens (for startup timing) */
+  onWsOpen: (() => void) | null = null;
   onDeath: DeathHandler | null = null;
   onRespawn: RespawnHandler | null = null;
   onPelletEaten: PelletEatenHandler | null = null;
@@ -43,21 +46,30 @@ export class GameSocket {
   }
 
   connect(url: string): Promise<void> {
-    return new Promise((resolve, reject) => {
+    if (this._connected) return Promise.resolve();
+    if (this.connectPromise) return this.connectPromise;
+
+    this.connectPromise = new Promise<void>((resolve, reject) => {
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
         this._connected = true;
+        this.connectPromise = null;
+        this.onWsOpen?.();
         console.log('[Socket] Connected');
         resolve();
       };
 
       this.ws.onclose = () => {
         this._connected = false;
+        this.connectPromise = null;
+        this.ws = null;
         console.log('[Socket] Disconnected');
       };
 
       this.ws.onerror = (e) => {
+        this.connectPromise = null;
+        this.ws = null;
         console.error('[Socket] Error', e);
         reject(e);
       };
@@ -99,6 +111,7 @@ export class GameSocket {
         }
       };
     });
+    return this.connectPromise;
   }
 
   send(msg: ClientMsg): void {

@@ -37,6 +37,7 @@ import { saveBestScoreIfHigher } from './ui/ScoreManager.js';
 import { setupJoinScreen } from './ui/JoinScreen.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
+import { markClick, markWsOpen, markWelcome, markGameplayReady } from './utils/startupTiming.js';
 import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 mountAnalytics();
@@ -137,6 +138,8 @@ function showJoinError(msg: string): void {
   joinError.style.display = '';
 }
 
+const joinBtn = document.getElementById('join-btn')!;
+
 setupJoinScreen({
   onJoin: async (playerName) => {
     joinError.textContent = '';
@@ -152,29 +155,44 @@ setupJoinScreen({
     }
 
     const wsUrl = normalizeWsUrl(rawUrl);
+    markClick();
+
+    joinBtn.textContent = 'Connecting...';
+    joinBtn.setAttribute('disabled', 'true');
 
     try {
       await socket.connect(wsUrl);
       socket.sendJoin(state.playerName);
 
+      joinBtn.textContent = 'PLAY';
+      joinBtn.removeAttribute('disabled');
       joinScreen.style.display = 'none';
       hud.show();
     } catch (e) {
       console.error('Failed to connect:', e);
       showJoinError('Could not connect to server. Make sure the server is running.');
+      joinBtn.textContent = 'PLAY';
+      joinBtn.removeAttribute('disabled');
     }
   },
   showError: showJoinError,
+  onPreconnect: () => {
+    const rawUrl = getWsUrl();
+    if (rawUrl) socket.connect(normalizeWsUrl(rawUrl));
+  },
 });
 
 // ── Socket handlers ──────────────────────────────────
+socket.onWsOpen = () => markWsOpen();
 socket.onWelcome = (msg) => {
+  markWelcome();
   state.playerId = msg.playerId;
   hud.setPlayerId(msg.playerId);
   playerMesh.addToScene(sceneManager.scene);
   state.sessionEndsAt = msg.sessionEndsAt;
   state.sessionId = msg.sessionId;
   sessionTimeline.setVisible(true);
+  markGameplayReady();
   console.log(`[Game] Joined as ${state.playerId}, arena=${msg.arena}`);
 };
 

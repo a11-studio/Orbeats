@@ -8,10 +8,11 @@ app = "orbeats"
 
 [[services]]
   internal_port = 3001
-  protocol = "tcp"  
+  protocol = "tcp"
+  # Keep 1 machine always running to avoid 2–3s cold-start delay on first connection
   auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
 
   [[services.ports]]
   port = 443

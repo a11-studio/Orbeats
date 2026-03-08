@@ -34,6 +34,8 @@ const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0' });
 let connectionCounter = 0;
 
 wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+  const tConn = Date.now();
+
   const clientIp = getClientIp(req);
 
   // Part A: Connection limit per IP — reject if too many from same IP
@@ -49,7 +51,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   let playerId: string | null = null;
   const bucket: TokenBucket = createTokenBucket();
 
-  console.log(`[WS] New connection: ${connId} from ${clientIp}`);
+  console.log(`[WS] Connection accepted: ${connId} from ${clientIp} (t=0)`);
 
   function closeAndCleanup(): void {
     decrementIpConn(clientIp);
@@ -75,6 +77,9 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
 
       switch (msg.type) {
         case ClientMsgType.Join: {
+          const tJoin = Date.now();
+          const dtConnToJoin = tJoin - tConn;
+
           playerId = connId;
           const name = msg.name.slice(0, 16) || 'Anon';
           gameLoop.world.addPlayer(playerId, name);
@@ -82,9 +87,14 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
 
           const { sessionEndsAt, sessionId } = gameLoop.getSessionTiming();
           sendJSON(ws, buildWelcome(playerId, sessionEndsAt, sessionId));
-          gameLoop.sendInitialPellets(ws);
+          const tWelcome = Date.now();
 
-          console.log(`[WS] Player joined: ${name} (${playerId})`);
+          gameLoop.sendInitialPellets(ws);
+          const tPellets = Date.now();
+
+          console.log(
+            `[WS] Player joined: ${name} (${playerId}) | conn→join=${dtConnToJoin}ms join→welcome=${tWelcome - tJoin}ms welcome→pellets=${tPellets - tWelcome}ms`,
+          );
           break;
         }
 
