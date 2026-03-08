@@ -3,6 +3,7 @@ import type { WebSocket } from 'ws';
 import { World } from './World.js';
 import {
   buildSnapshot,
+  buildLeaderboardMsg,
   buildDeath,
   buildRespawn,
   buildPelletEaten,
@@ -14,7 +15,7 @@ import {
 } from './network.js';
 
 /** Ticks between full pellet syncs (safety net against missed events) */
-const PELLET_FULL_SYNC_INTERVAL = 300; // ~15 seconds at 20Hz
+const PELLET_FULL_SYNC_INTERVAL = 1200; // ~60 seconds at 20Hz (was 15s — reduces payload spikes)
 const SESSION_MS = SESSION_SECONDS * 1000;
 
 export class GameLoop {
@@ -28,6 +29,7 @@ export class GameLoop {
 
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private broadcastInterval: ReturnType<typeof setInterval> | null = null;
+  private leaderboardInterval: ReturnType<typeof setInterval> | null = null;
 
   start(): void {
     console.log(`[GameLoop] Starting: tick=${SERVER_TICK_MS}ms, broadcast=${BROADCAST_INTERVAL_MS.toFixed(0)}ms`);
@@ -56,6 +58,7 @@ export class GameLoop {
           sendJSON(ws, pelletMsg);
         }
         this.broadcastSnapshots();
+        this.broadcastLeaderboard(); // Fresh leaderboard immediately (don't wait for 5 Hz interval)
       }
 
       // Broadcast pellet events immediately after each tick
@@ -75,17 +78,26 @@ export class GameLoop {
     this.broadcastInterval = setInterval(() => {
       this.broadcastSnapshots();
     }, BROADCAST_INTERVAL_MS);
+
+    // Leaderboard at 5 Hz (separate from 15 Hz entity snapshots; responsive but lighter)
+    this.leaderboardInterval = setInterval(() => {
+      this.broadcastLeaderboard();
+    }, 200);
   }
 
   stop(): void {
     if (this.tickInterval) clearInterval(this.tickInterval);
     if (this.broadcastInterval) clearInterval(this.broadcastInterval);
+    if (this.leaderboardInterval) clearInterval(this.leaderboardInterval);
   }
 
   registerClient(id: string, ws: WebSocket): void {
     this.clients.set(id, ws);
     this.clientSeqs.set(id, 0);
     if (this.sessionEndsAt <= 0) {
+      // First joiner (or after room was empty): reset world so no stale bots/scores from server start
+      console.log('[ROOM RESET] New session — resetting world for first joiner');
+      this.world.resetWorld();
       this.sessionEndsAt = Date.now() + SESSION_MS;
       this.sessionId = 1;
       console.log('[GameLoop] Session started (first player joined)');
@@ -112,6 +124,12 @@ export class GameLoop {
     this.clientSeqs.set(id, seq);
   }
 
+  /** Send initial leaderboard to a client (on join, so they don't wait for 1 Hz tick) */
+  sendInitialLeaderboard(ws: WebSocket): void {
+    const msg = buildLeaderboardMsg(this.world);
+    sendJSON(ws, msg);
+  }
+
   /** Send full pellet state to a specific client (on join) */
   sendInitialPellets(ws: WebSocket): void {
     // Flush any stale events first so they don't arrive AFTER the sync
@@ -132,6 +150,15 @@ export class GameLoop {
       if (msg) {
         sendJSON(ws, msg);
       }
+    }
+  }
+
+  private broadcastLeaderboard(): void {
+    if (this.clients.size === 0) return;
+
+    const msg = buildLeaderboardMsg(this.world);
+    for (const ws of this.clients.values()) {
+      sendJSON(ws, msg);
     }
   }
 

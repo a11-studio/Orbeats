@@ -5,6 +5,7 @@ import {
   type ServerMsg,
   type SnapshotMsg,
   type WelcomeMsg,
+  type LeaderboardMsg,
   type DeathMsg,
   type RespawnMsg,
   type PelletEatenMsg,
@@ -15,6 +16,7 @@ import {
 } from '@orbeats/shared';
 
 export type SnapshotHandler = (msg: SnapshotMsg) => void;
+export type LeaderboardHandler = (msg: LeaderboardMsg) => void;
 export type WelcomeHandler = (msg: WelcomeMsg) => void;
 export type DeathHandler = (msg: DeathMsg) => void;
 export type RespawnHandler = (msg: RespawnMsg) => void;
@@ -30,6 +32,7 @@ export class GameSocket {
   private connectPromise: Promise<void> | null = null;
 
   onSnapshot: SnapshotHandler | null = null;
+  onLeaderboard: LeaderboardHandler | null = null;
   onWelcome: WelcomeHandler | null = null;
   /** Called when WS opens (for startup timing) */
   onWsOpen: (() => void) | null = null;
@@ -83,6 +86,9 @@ export class GameSocket {
               break;
             case ServerMsgType.Snapshot:
               this.onSnapshot?.(msg);
+              break;
+            case ServerMsgType.Leaderboard:
+              this.onLeaderboard?.(msg);
               break;
             case ServerMsgType.Death:
               this.onDeath?.(msg);

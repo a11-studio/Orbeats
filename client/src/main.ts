@@ -200,6 +200,9 @@ socket.onSnapshot = (msg) => {
   if (state.gamePhase === 'GAME_OVER' || state.gamePhase === 'MULTIPLIER') return;
   interpolation.pushSnapshot(msg);
 };
+socket.onLeaderboard = (msg) => {
+  interpolation.pushLeaderboard(msg.leaderboard);
+};
 
 socket.onDeath = (msg) => {
   if (state.sessionLocked) return;

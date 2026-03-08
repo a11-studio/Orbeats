@@ -55,10 +55,10 @@ function generateDailyBotTopScores(count: number): BotLeaderboardEntry[] {
     }
     usedNames.add(name);
 
-    let score = Math.floor(1000 + Math.pow(rng(), 0.35) * 9000);
-    score = Math.max(1000, Math.min(10000, score));
+    let score = Math.floor(500 + Math.pow(rng(), 0.35) * 1500);
+    score = Math.max(500, Math.min(2000, score));
     while (usedScores.has(score)) {
-      score = Math.floor(1000 + rng() * 9000);
+      score = Math.floor(500 + rng() * 1500);
     }
     usedScores.add(score);
 

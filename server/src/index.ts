@@ -90,6 +90,7 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
           const tWelcome = Date.now();
 
           gameLoop.sendInitialPellets(ws);
+          gameLoop.sendInitialLeaderboard(ws);
           const tPellets = Date.now();
 
           console.log(

@@ -462,12 +462,14 @@ export class World {
    *   6. Regenerate all pellets
    */
   resetWorld(): void {
+    const lbBefore = this.getLeaderboard().slice(0, 5).map((e) => ({ name: e.name, score: e.score }));
     const before = {
       players: this.players.size,
       bots: this.bots.size,
       splitCells: this.splitCells.size,
       pellets: this.pellets.size,
-      leaderboard: this.sessionHighScores.length,
+      sessionHighScores: this.sessionHighScores.length,
+      top5: lbBefore,
     };
 
     // 1. Wipe split cells
@@ -496,16 +498,16 @@ export class World {
     // 6. Regenerate pellets
     this.pellets.resetAll();
 
+    const lbAfter = this.getLeaderboard().slice(0, 5).map((e) => ({ name: e.name, score: e.score }));
     const after = {
       players: this.players.size,
       bots: this.bots.size,
       splitCells: this.splitCells.size,
       pellets: this.pellets.size,
-      leaderboard: this.sessionHighScores.length,
+      sessionHighScores: this.sessionHighScores.length,
+      top5: lbAfter,
     };
-    console.log(
-      `[ROOM RESET] before=${JSON.stringify(before)} after=${JSON.stringify(after)}`,
-    );
+    console.log(`[ROOM RESET] before=${JSON.stringify(before)} after=${JSON.stringify(after)}`);
   }
 
   // ── High scores ─────────────────────────────────────

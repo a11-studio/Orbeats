@@ -12,6 +12,7 @@ export enum ClientMsgType {
 export enum ServerMsgType {
   Welcome = 'welcome',
   Snapshot = 'snapshot',
+  Leaderboard = 'leaderboard',
   Death = 'death',
   Respawn = 'respawn',
   PelletEaten = 'pellet_eaten',
@@ -66,6 +67,13 @@ export interface SnapshotMsg {
   tick: number;
   seq: number; // last processed input seq for this client
   entities: EntityState[];
+  /** @deprecated Sent separately via Leaderboard msg at 1 Hz */
+  leaderboard?: LeaderboardEntry[];
+}
+
+/** Leaderboard sent at 1 Hz (separate from 15 Hz entity snapshots) */
+export interface LeaderboardMsg {
+  type: ServerMsgType.Leaderboard;
   leaderboard: LeaderboardEntry[];
 }
 
@@ -117,6 +125,7 @@ export interface RoomSessionEndedMsg {
 export type ServerMsg =
   | WelcomeMsg
   | SnapshotMsg
+  | LeaderboardMsg
   | DeathMsg
   | RespawnMsg
   | PelletEatenMsg

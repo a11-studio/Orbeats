@@ -3,6 +3,7 @@ import {
   ServerMsgType,
   type SnapshotMsg,
   type WelcomeMsg,
+  type LeaderboardMsg,
   type DeathMsg,
   type RespawnMsg,
   type PelletEatenMsg,
@@ -40,14 +41,13 @@ export function buildRoomSessionEnded(sessionId: number, sessionEndsAt: number):
   };
 }
 
-/** Snapshots include ALL entities (players, bots, split cells). Pellets are event-driven. */
+/** Snapshots include ALL entities (players, bots, split cells). Leaderboard sent separately at 1 Hz. */
 export function buildSnapshot(
   world: World,
   tick: number,
   clientSeqs: Map<string, number>,
 ): Map<string, SnapshotMsg> {
   const entities = world.getAllEntities().map((e) => e.toState());
-  const leaderboard = world.getLeaderboard();
 
   const messages = new Map<string, SnapshotMsg>();
   for (const [id] of world.players) {
@@ -56,10 +56,16 @@ export function buildSnapshot(
       tick,
       seq: clientSeqs.get(id) ?? 0,
       entities,
-      leaderboard,
     });
   }
   return messages;
+}
+
+export function buildLeaderboardMsg(world: World): LeaderboardMsg {
+  return {
+    type: ServerMsgType.Leaderboard,
+    leaderboard: world.getLeaderboard(),
+  };
 }
 
 export function buildDeath(

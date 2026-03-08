@@ -59,7 +59,7 @@ export class Interpolation {
     this.buffer.push({
       time: now,
       entities: msg.entities,
-      leaderboard: msg.leaderboard,
+      leaderboard: msg.leaderboard ?? [],
       tick: msg.tick,
       seq: msg.seq,
     });
@@ -72,9 +72,16 @@ export class Interpolation {
     // Update latest raw state (for local player reconciliation)
     this.latestEntities = msg.entities;
     this.latestSeq = msg.seq;
-    this.leaderboard = msg.leaderboard;
+    if (msg.leaderboard !== undefined) {
+      this.leaderboard = msg.leaderboard;
+    }
 
     this._hasNewSnapshot = true;
+  }
+
+  /** Leaderboard sent separately at 1 Hz (not in snapshot) */
+  pushLeaderboard(leaderboard: LeaderboardEntry[]): void {
+    this.leaderboard = leaderboard;
   }
 
   /** Build a Map<id, EntityState> for O(1) lookups during interpolation. */
