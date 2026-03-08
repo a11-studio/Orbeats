@@ -38,9 +38,10 @@ import { setupJoinScreen } from './ui/JoinScreen.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
 import { markClick, markWsOpen, markWelcome, markGameplayReady } from './utils/startupTiming.js';
-import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
+import { APP_VERSION, BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 mountAnalytics();
+console.log(`[Game] Client version=${APP_VERSION}`);
 
 // ── State ────────────────────────────────────────────
 const state = createGameState();
@@ -163,11 +164,19 @@ setupJoinScreen({
     try {
       await socket.connect(wsUrl);
       socket.sendJoin(state.playerName);
-
-      joinBtn.textContent = 'PLAY';
-      joinBtn.removeAttribute('disabled');
-      joinScreen.style.display = 'none';
-      hud.show();
+      joinBtn.textContent = 'Loading...';
+      // Join screen stays visible until PelletSync arrives (gate gameplay on initial data)
+      // Fallback: show game after 8s if PelletSync never arrives (avoids stuck state)
+      setTimeout(() => {
+        if (state.playerId && joinScreen.style.display !== 'none') {
+          console.warn('[Game] PelletSync timeout — showing game without pellets');
+          joinBtn.textContent = 'PLAY';
+          joinBtn.removeAttribute('disabled');
+          joinScreen.style.display = 'none';
+          hud.show();
+          markGameplayReady();
+        }
+      }, 8000);
     } catch (e) {
       console.error('Failed to connect:', e);
       showJoinError('Could not connect to server. Make sure the server is running.');
@@ -192,8 +201,21 @@ socket.onWelcome = (msg) => {
   state.sessionEndsAt = msg.sessionEndsAt;
   state.sessionId = msg.sessionId;
   sessionTimeline.setVisible(true);
-  markGameplayReady();
-  console.log(`[Game] Joined as ${state.playerId}, arena=${msg.arena}`);
+  const serverVer = (msg as { version?: string }).version;
+  console.log(
+    `[Game] Welcome received playerId=${state.playerId} arena=${msg.arena} serverVersion=${serverVer ?? '?'} clientVersion=${APP_VERSION}`,
+  );
+  if (serverVer && serverVer !== APP_VERSION) {
+    console.warn(`[Game] Version mismatch: client=${APP_VERSION} server=${serverVer}`);
+  }
+  // If PelletSync already arrived (unlikely), show game now
+  if (pelletStore.size > 0 && joinScreen.style.display !== 'none') {
+    joinBtn.textContent = 'PLAY';
+    joinBtn.removeAttribute('disabled');
+    joinScreen.style.display = 'none';
+    hud.show();
+    markGameplayReady();
+  }
 };
 
 socket.onSnapshot = (msg) => {
@@ -270,6 +292,7 @@ socket.onNewGameStarted = () => {
 
 // ── Room session ended (timer expiry → Game Over for all) ─────────
 socket.onRoomSessionEnded = (msg) => {
+  console.log(`[Game] RoomSessionEnded received sessionId=${msg.sessionId} sessionEndsAt=${msg.sessionEndsAt}`);
   if (msg.sessionId <= state.sessionId) return; // Guard against duplicate
   const endedSessionId = msg.sessionId - 1; // Session we just finished (server sends new id)
   state.sessionId = msg.sessionId;
@@ -310,6 +333,15 @@ socket.onRoomSessionEnded = (msg) => {
 // ── Pellet event handlers ────────────────────────────
 socket.onPelletSync = (msg) => {
   pelletStore.sync(msg.pellets);
+  console.log(`[Game] PelletSync received pellets=${msg.pellets.length}`);
+  // Gate gameplay: hide join screen only after initial pellet sync (ensures pellets visible on start)
+  if (state.playerId && joinScreen.style.display !== 'none') {
+    joinBtn.textContent = 'PLAY';
+    joinBtn.removeAttribute('disabled');
+    joinScreen.style.display = 'none';
+    hud.show();
+    markGameplayReady();
+  }
 };
 
 socket.onPelletEaten = (msg) => {

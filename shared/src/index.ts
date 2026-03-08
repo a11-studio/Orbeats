@@ -37,3 +37,4 @@ export {
 } from './constants.js';
 export * from './types.js';
 export * from './protocol.js';
+export { APP_VERSION } from './version.js';

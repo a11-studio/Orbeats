@@ -1,6 +1,7 @@
 import type { WebSocket } from 'ws';
 import {
   ServerMsgType,
+  APP_VERSION,
   type SnapshotMsg,
   type WelcomeMsg,
   type LeaderboardMsg,
@@ -30,6 +31,7 @@ export function buildWelcome(playerId: string, sessionEndsAt: number, sessionId:
     arena: ARENA_SIZE,
     sessionEndsAt,
     sessionId,
+    version: APP_VERSION,
   };
 }
 

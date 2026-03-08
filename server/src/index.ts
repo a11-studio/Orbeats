@@ -1,3 +1,5 @@
+import { APP_VERSION } from '@orbeats/shared';
+
 /**
  * Orbeats WS server — security protections:
  * - MAX_CONN_PER_IP, MAX_MSG_PER_SEC, BURST, RATE_LIMIT_STRIKES_BEFORE_CLOSE (security.ts)
@@ -89,12 +91,14 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
           sendJSON(ws, buildWelcome(playerId, sessionEndsAt, sessionId));
           const tWelcome = Date.now();
 
+          const pelletCount = gameLoop.world.pellets.size;
           gameLoop.sendInitialPellets(ws);
-          gameLoop.sendInitialLeaderboard(ws);
           const tPellets = Date.now();
+          gameLoop.sendInitialLeaderboard(ws);
+          const tLeaderboard = Date.now();
 
           console.log(
-            `[WS] Player joined: ${name} (${playerId}) | conn→join=${dtConnToJoin}ms join→welcome=${tWelcome - tJoin}ms welcome→pellets=${tPellets - tWelcome}ms`,
+            `[WS] Player joined: ${name} (${playerId}) | pellets=${pelletCount} conn→join=${dtConnToJoin}ms welcome→pellets=${tPellets - tWelcome}ms pellets→lb=${tLeaderboard - tPellets}ms`,
           );
           break;
         }
@@ -150,4 +154,4 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   });
 });
 
-console.log(`[Server] WS listening on ws://0.0.0.0:${PORT}`);
+console.log(`[Server] WS listening on ws://0.0.0.0:${PORT} version=${APP_VERSION}`);

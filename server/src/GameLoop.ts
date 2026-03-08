@@ -46,7 +46,9 @@ export class GameLoop {
         const oldSession = this.sessionId;
         this.sessionEndsAt = now + SESSION_MS;
         this.sessionId++;
-        console.log(`[ROOM RESET] Session expired oldSession=${oldSession} newSession=${this.sessionId}`);
+        console.log(
+          `[ROOM RESET] Session expired oldSession=${oldSession} newSession=${this.sessionId} clients=${this.clients.size}`,
+        );
         this.world.resetWorld();
         if (this.world.hasPelletEvents()) this.world.flushPelletEvents();
         const msg = buildRoomSessionEnded(this.sessionId, this.sessionEndsAt);
@@ -59,6 +61,7 @@ export class GameLoop {
         }
         this.broadcastSnapshots();
         this.broadcastLeaderboard(); // Fresh leaderboard immediately (don't wait for 5 Hz interval)
+        console.log(`[ROOM RESET] RoomSessionEnded broadcast to ${this.clients.size} clients`);
       }
 
       // Broadcast pellet events immediately after each tick

@@ -203,6 +203,18 @@ export class PelletManager {
     this.eatenThisTick.clear();
     this.spawnedThisTick = [];
     this.spawnInitial();
+    this.assertGridConsistency();
+  }
+
+  /** Debug: verify grid and pellets map are in sync */
+  private assertGridConsistency(): void {
+    let gridCount = 0;
+    for (const list of this.grid.values()) gridCount += list.length;
+    if (gridCount !== this.pellets.size) {
+      console.error(
+        `[Pellet] Grid inconsistency: pellets=${this.pellets.size} gridTotal=${gridCount}`,
+      );
+    }
   }
 
   get(id: number): Pellet | undefined {

@@ -60,6 +60,8 @@ export interface WelcomeMsg {
   /** Unix ms when room session ends. Server-authoritative, shared by all players. */
   sessionEndsAt: number;
   sessionId: number;
+  /** Build version for deploy mismatch detection */
+  version?: string;
 }
 
 export interface SnapshotMsg {
