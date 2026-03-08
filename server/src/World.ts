@@ -452,35 +452,60 @@ export class World {
   }
 
   /**
-   * Full new-game reset (legacy / unused after per-player respawn):
-   *   1. Clear all split cells
-   *   2. Clear respawn queue
-   *   3. Reset every human player with random mass
-   *   4. Remove all bots and re-spawn fresh bots with random mass
-   *   5. Regenerate all pellets
+   * Full room reset (session expired or room emptied).
+   * Clears ALL state so no mass/score/entities leak into the next session.
+   *   1. Clear split cells
+   *   2. Clear respawn queue, pending deaths, pending respawns
+   *   3. Clear session high scores (death overlay)
+   *   4. Reset every human player with random mass
+   *   5. Remove ALL bots and re-spawn fresh bots (no carry-over)
+   *   6. Regenerate all pellets
    */
   resetWorld(): void {
+    const before = {
+      players: this.players.size,
+      bots: this.bots.size,
+      splitCells: this.splitCells.size,
+      pellets: this.pellets.size,
+      leaderboard: this.sessionHighScores.length,
+    };
+
     // 1. Wipe split cells
     this.splitCells.clear();
 
-    // 2. Clear respawn queue
+    // 2. Clear respawn queue and event queues (no stale deaths/respawns after reset)
     this.respawnQueue = [];
+    this.pendingDeaths = [];
+    this.pendingRespawns = [];
 
-    // 3. Reset human players
+    // 3. Clear session high scores (prevents death overlay showing old-session scores)
+    this.sessionHighScores = [];
+
+    // 4. Reset human players
     for (const player of this.players.values()) {
       player.resetForNewGame();
     }
 
-    // 4. Re-create bots with fresh random masses
+    // 5. Remove ALL bots and create fresh set (no old bots survive)
     this.bots.clear();
     this.updateBots();
-    // Override bot masses with random start mass
     for (const bot of this.bots.values()) {
       bot.resetForNewGame();
     }
 
-    // 5. Regenerate pellets
+    // 6. Regenerate pellets
     this.pellets.resetAll();
+
+    const after = {
+      players: this.players.size,
+      bots: this.bots.size,
+      splitCells: this.splitCells.size,
+      pellets: this.pellets.size,
+      leaderboard: this.sessionHighScores.length,
+    };
+    console.log(
+      `[ROOM RESET] before=${JSON.stringify(before)} after=${JSON.stringify(after)}`,
+    );
   }
 
   // ── High scores ─────────────────────────────────────

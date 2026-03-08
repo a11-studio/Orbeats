@@ -41,8 +41,10 @@ export class GameLoop {
 
       // Room session timer: when expired, reset world and broadcast to all
       if (this.sessionEndsAt > 0 && now >= this.sessionEndsAt) {
+        const oldSession = this.sessionId;
         this.sessionEndsAt = now + SESSION_MS;
         this.sessionId++;
+        console.log(`[ROOM RESET] Session expired oldSession=${oldSession} newSession=${this.sessionId}`);
         this.world.resetWorld();
         if (this.world.hasPelletEvents()) this.world.flushPelletEvents();
         const msg = buildRoomSessionEnded(this.sessionId, this.sessionEndsAt);
@@ -54,7 +56,6 @@ export class GameLoop {
           sendJSON(ws, pelletMsg);
         }
         this.broadcastSnapshots();
-        console.log('[GameLoop] Room session expired — reset for all');
       }
 
       // Broadcast pellet events immediately after each tick
@@ -99,8 +100,11 @@ export class GameLoop {
     this.clients.delete(id);
     this.clientSeqs.delete(id);
     if (this.clients.size === 0) {
+      // Room empty: reset world so next joiner sees fresh state (no stale bots/scores)
+      console.log('[ROOM RESET] Room empty — resetting world for next joiner');
+      this.world.resetWorld();
       this.sessionEndsAt = 0;
-      console.log('[GameLoop] Room empty — session cleared');
+      this.sessionId = 0;
     }
   }
 
