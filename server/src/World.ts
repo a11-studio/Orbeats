@@ -47,6 +47,7 @@ export class World {
   private pendingDeaths: DeathEvent[] = [];
   private pendingRespawns: string[] = [];
   private sessionHighScores: { name: string; score: number }[] = [];
+  private tickCount: number = 0;
 
   addPlayer(id: string, name: string): Player {
     const player = new Player(id, name, false);
@@ -233,17 +234,27 @@ export class World {
     // 5. Sibling repulsion — push same-player blobs apart during cooldown
     this.applySiblingRepulsion(dt, now);
 
-    // 6. Check pellet collisions (server-authoritative)
-    const pelletSnapshot = this.pellets.getAllArray();
+    // 6. Check pellet collisions (spatial hashing: only nearby pellets)
+    this.tickCount++;
+    let collisionChecksPerTick = 0;
+    let pelletsCheckedPerEntity = 0;
     for (const entity of this.getAllEntities()) {
       if (!entity.alive) continue;
-      for (const pellet of pelletSnapshot) {
+      const nearbyPellets = this.pellets.getPelletsNear(entity.x, entity.z);
+      pelletsCheckedPerEntity = Math.max(pelletsCheckedPerEntity, nearbyPellets.length);
+      for (const pellet of nearbyPellets) {
+        collisionChecksPerTick++;
         if (checkPelletCollision(entity, pellet)) {
           if (this.pellets.eatPellet(pellet.id, entity.id)) {
             entity.addMass(pellet.mass);
           }
         }
       }
+    }
+    if (this.tickCount % 100 === 0) {
+      console.log(
+        `[Collision] checks=${collisionChecksPerTick} maxPerEntity=${pelletsCheckedPerEntity}`,
+      );
     }
 
     // 7. Check entity-vs-entity eating

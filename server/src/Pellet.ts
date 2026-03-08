@@ -8,6 +8,15 @@ import {
   RARE_CANDY_MASS,
   RARE_CANDY_RADIUS,
 } from '@orbeats/shared';
+
+/** Cell size for spatial hashing. ~27 cells per axis, ~5-6 pellets/cell. */
+const CELL_SIZE = 30;
+
+function cellKey(x: number, z: number): string {
+  const cx = Math.floor((x + ARENA_HALF) / CELL_SIZE);
+  const cz = Math.floor((z + ARENA_HALF) / CELL_SIZE);
+  return `${cx},${cz}`;
+}
 import type { PelletState } from '@orbeats/shared';
 
 const PELLET_COLORS = [
@@ -76,9 +85,32 @@ export class PelletManager {
   /** The single source of truth: every live pellet by ID */
   private pellets: Map<number, Pellet> = new Map();
 
+  /** Spatial grid: cellKey -> Pellet[] for O(1) collision lookup */
+  private grid: Map<string, Pellet[]> = new Map();
+
   // Per-tick event accumulators (flushed after broadcast)
   private eatenThisTick: Map<string, number[]> = new Map();
   private spawnedThisTick: PelletState[] = [];
+
+  private insertIntoGrid(p: Pellet): void {
+    const key = cellKey(p.x, p.z);
+    let list = this.grid.get(key);
+    if (!list) {
+      list = [];
+      this.grid.set(key, list);
+    }
+    list.push(p);
+  }
+
+  private removeFromGrid(p: Pellet): void {
+    const key = cellKey(p.x, p.z);
+    const list = this.grid.get(key);
+    if (list) {
+      const i = list.indexOf(p);
+      if (i >= 0) list.splice(i, 1);
+      if (list.length === 0) this.grid.delete(key);
+    }
+  }
 
   constructor() {
     this.spawnInitial();
@@ -88,6 +120,7 @@ export class PelletManager {
     for (let i = 0; i < PELLET_COUNT; i++) {
       const p = new Pellet('normal');
       this.pellets.set(p.id, p);
+      this.insertIntoGrid(p);
     }
     this.spawnSpecialBatch(true);
     for (let i = 0; i < 5; i++) this.spawnRareCandies(true, true);
@@ -104,6 +137,7 @@ export class PelletManager {
     for (let i = 0; i < count; i++) {
       const p = new Pellet('special_10');
       this.pellets.set(p.id, p);
+      this.insertIntoGrid(p);
       if (!skipEvents) this.spawnedThisTick.push(p.toState());
     }
   }
@@ -113,6 +147,7 @@ export class PelletManager {
     if (!forceOne && Math.random() >= 0.08) return;
     const p = new Pellet('rare_100');
     this.pellets.set(p.id, p);
+    this.insertIntoGrid(p);
     if (!skipEvents) this.spawnedThisTick.push(p.toState());
   }
 
@@ -121,6 +156,7 @@ export class PelletManager {
     const pellet = this.pellets.get(pelletId);
     if (!pellet) return false;
 
+    this.removeFromGrid(pellet);
     this.pellets.delete(pelletId);
 
     let ids = this.eatenThisTick.get(eaterId);
@@ -138,6 +174,7 @@ export class PelletManager {
     while (this.pellets.size < PELLET_COUNT) {
       const p = new Pellet('normal');
       this.pellets.set(p.id, p);
+      this.insertIntoGrid(p);
       this.spawnedThisTick.push(p.toState());
     }
     if (Math.random() < 0.03 && this.pellets.size < PELLET_COUNT + 80) this.spawnSpecialBatch();
@@ -162,6 +199,7 @@ export class PelletManager {
   /** Destroy all pellets and spawn a fresh set. Used for new-game reset. */
   resetAll(): void {
     this.pellets.clear();
+    this.grid.clear();
     this.eatenThisTick.clear();
     this.spawnedThisTick = [];
     this.spawnInitial();
@@ -174,6 +212,21 @@ export class PelletManager {
   /** Safe snapshot: returns a NEW array of all live pellets (safe to iterate while map mutates) */
   getAllArray(): Pellet[] {
     return [...this.pellets.values()];
+  }
+
+  /** Get pellets in entity's cell + 8 neighbours. For spatial hashing collision. */
+  getPelletsNear(x: number, z: number): Pellet[] {
+    const cx = Math.floor((x + ARENA_HALF) / CELL_SIZE);
+    const cz = Math.floor((z + ARENA_HALF) / CELL_SIZE);
+    const out: Pellet[] = [];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const key = `${cx + dx},${cz + dz}`;
+        const list = this.grid.get(key);
+        if (list) out.push(...list);
+      }
+    }
+    return out;
   }
 
   /** Full state array for sync messages */
