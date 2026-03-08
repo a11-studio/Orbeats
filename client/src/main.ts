@@ -1,13 +1,26 @@
-import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
-import { Analytics } from '@vercel/analytics/react';
-import * as THREE from 'three';
+// ── Wiring diagram ───────────────────────────────────────────────────────
+// analytics         → mountAnalytics()        mounts isolated Vercel React root
+// state             → createGameState()        all mutable session/player state
+// sceneManager      → SceneManager             Three.js render + camera follow
+// socket            → GameSocket               WS transport + typed handlers
+// interpolation     → Interpolation            remote entity smooth-buffer (100 ms behind)
+// prediction        → Prediction               client-side dead-reckoning
+// pelletStore       → PelletStore              event-driven pellet registry
+// input             → InputManager             mouse/touch → normalized dir vector
+// hud               → HUD                      score, leaderboard, death overlay
+// multiplierOverlay → MultiplierOverlay         post-death skill mini-game
+// sessionTimeline   → SessionTimeline           bottom-right progress bar + End Game morph
+// mergeAnim         → MergeAnimManager  (step 5) split-cell shrink animations
+// joinScreen        → setupJoinScreen() (step 3) join DOM wiring
+// ────────────────────────────────────────────────────────────────────────
+
+import { mountAnalytics } from './integrations/analytics.js';
+import { createGameState } from './core/gameState.js';
+import { runMultiplierFlow } from './core/gameOver.js';
+import type { GameOverDeps } from './core/gameOver.js';
 import { SceneManager } from './scene/SceneManager.js';
+import { MergeAnimManager } from './scene/MergeAnimManager.js';
 import { PlayerMesh } from './scene/PlayerMesh.js';
-
-// Vercel Web Analytics — pageviews only, no-op in dev
-createRoot(document.getElementById('analytics-root')!).render(createElement(Analytics));
-
 import { EnemyMesh } from './scene/EnemyMesh.js';
 import { PelletMeshManager } from './scene/PelletMesh.js';
 import { NameTagManager } from './scene/NameLabel.js';
@@ -20,26 +33,16 @@ import { setupDoubleTapSplit } from './input/DoubleTapSplit.js';
 import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
 import { SessionTimeline } from './ui/SessionTimeline.js';
-import { saveBestScoreIfHigher, addScoresToTopScoresToday } from './ui/ScoreManager.js';
+import { saveBestScoreIfHigher } from './ui/ScoreManager.js';
+import { setupJoinScreen } from './ui/JoinScreen.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
 import { BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
+mountAnalytics();
+
 // ── State ────────────────────────────────────────────
-type GamePhase = 'PLAYING' | 'LEADERBOARD' | 'GAME_OVER' | 'MULTIPLIER';
-let playerId: string | null = null;
-let playerName: string = 'Anon';
-let playerMass: number = BASE_MASS;
-let playerScore: number = 0;
-let playerAlive: boolean = true;
-let inputFrozen: boolean = false;
-let gamePhase: GamePhase = 'PLAYING';
-let frozenFinalScore: number = 0;
-let playerFrozen: boolean = false;
-let sessionLocked: boolean = false;
-/** Server-authoritative session end (unix ms). Set on Welcome / RoomSessionEnded. Shared by all players in room. */
-let sessionEndsAt: number = 0;
-let sessionId: number = 0;
+const state = createGameState();
 
 // ── Initialize modules ───────────────────────────────
 const sceneManager = new SceneManager();
@@ -51,6 +54,9 @@ const input = new InputManager();
 const hud = new HUD();
 const multiplierOverlay = new MultiplierOverlay();
 const sessionTimeline = new SessionTimeline();
+
+// Shared deps for the game-over multiplier flow
+const gameOverDeps: GameOverDeps = { state, socket, multiplierOverlay, hud };
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
@@ -64,62 +70,47 @@ setupDoubleTapSplit(
   sceneManager.renderer.domElement,
   () =>
     isMobile() &&
-    gamePhase === 'PLAYING' &&
-    playerAlive &&
-    !inputFrozen,
+    state.gamePhase === 'PLAYING' &&
+    state.playerAlive &&
+    !state.inputFrozen,
   () => input.requestSplit(),
 );
 
 // Wire up End Game (timeline hover-morph / mobile menu) → multiplier flow first
 sessionTimeline.onEndGameClick = () => {
-  if (gamePhase !== 'PLAYING') return;
+  if (state.gamePhase !== 'PLAYING') return;
   triggerGameOverFlow();
 };
 
 function triggerGameOverFlow(): void {
-  if (sessionLocked) return;
-  sessionLocked = true;
-  const baseScore = playerScore;
-  frozenFinalScore = baseScore;
-  playerFrozen = true;
-  inputFrozen = true;
-  gamePhase = 'MULTIPLIER';
-  deathKillerName = 'Session ended';
-  deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  if (state.sessionLocked) return;
+  state.sessionLocked = true;
+  const baseScore = state.playerScore;
+  state.frozenFinalScore = baseScore;
+  state.playerFrozen = true;
+  state.inputFrozen = true;
+  state.gamePhase = 'MULTIPLIER';
+  state.deathKillerName = 'Session ended';
+  state.deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
-  multiplierOverlay.mount();
-  multiplierOverlay.show(frozenFinalScore, (multiplier) => {
-    const multipliedScore = Math.floor(frozenFinalScore * multiplier);
-    frozenFinalScore = multipliedScore;
-    addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
-    saveBestScoreIfHigher(multipliedScore);
-    if (playerId) socket.sendGameOver(multipliedScore, playerName, sessionId);
-    multiplierOverlay.hide();
-    gamePhase = 'GAME_OVER';
-    hud.showDeathWithMultiplier(
-      deathKillerName,
-      multiplier,
-      baseScore,
-      multipliedScore,
-      playerName,
-      deathTopScores,
-    );
-  });
+  runMultiplierFlow(baseScore, state.sessionId, gameOverDeps);
 }
 
 function resetGame(): void {
   hud.hideDeath();
   hud.hideLeaderboard();
   multiplierOverlay.hide();
-  playerFrozen = false;
-  sessionLocked = false;
-  gamePhase = 'PLAYING';
+  state.playerFrozen = false;
+  state.sessionLocked = false;
+  state.gamePhase = 'PLAYING';
   socket.sendNewGame();
 }
 
 // Wire up Start Match (on death overlay → reset)
 hud.onStartMatch = () => {
-  const scoreToSave = (gamePhase === 'GAME_OVER' || gamePhase === 'MULTIPLIER') ? frozenFinalScore : playerScore;
+  const scoreToSave = (state.gamePhase === 'GAME_OVER' || state.gamePhase === 'MULTIPLIER')
+    ? state.frozenFinalScore
+    : state.playerScore;
   saveBestScoreIfHigher(scoreToSave);
   resetGame();
 };
@@ -128,36 +119,17 @@ hud.onStartMatch = () => {
 const splitMeshes = new Map<string, PlayerMesh>();
 
 // ── Merge animation system ──────────────────────────
-/** Track last-known parentId for each rendered entity so we can
- *  detect merges when the entity disappears from the snapshot. */
-const entityParentIds = new Map<string, string | null>();
+const mergeAnimManager = new MergeAnimManager();
 
-interface MergeAnim {
-  type: 'player' | 'enemy';
-  object: THREE.Object3D; // the mesh/group in the scene
-  startX: number;
-  startZ: number;
-  startScale: number;
-  parentId: string; // entity to shrink toward
-  startTime: number;
-}
-const MERGE_ANIM_DURATION = 300; // ms
-const mergeAnims: MergeAnim[] = [];
-
-// Smoothed velocity for camera (avoids jitter when starting/stopping)
-let smoothedVelX = 0;
-let smoothedVelZ = 0;
+// Velocity smoothing constants (camera)
 const VELOCITY_SMOOTHING = 0.2;
 const VELOCITY_DEAD_ZONE = 0.001;
 
 // Input sending throttle
 const INPUT_SEND_RATE = 1000 / 30; // 30Hz
-let lastInputSendTime = 0;
 
 // ── Join Screen ──────────────────────────────────────
 const joinScreen = document.getElementById('join-screen')!;
-const joinBtn = document.getElementById('join-btn')!;
-const nameInput = document.getElementById('name-input') as HTMLInputElement;
 const joinError = document.getElementById('join-error')!;
 
 function showJoinError(msg: string): void {
@@ -165,95 +137,71 @@ function showJoinError(msg: string): void {
   joinError.style.display = '';
 }
 
-function hideJoinError(): void {
-  joinError.textContent = '';
-  joinError.style.display = 'none';
-}
+setupJoinScreen({
+  onJoin: async (playerName) => {
+    joinError.textContent = '';
+    joinError.style.display = 'none';
+    state.playerName = playerName;
 
-async function startGame(): Promise<void> {
-  hideJoinError();
-  playerName = nameInput.value.trim() || 'Anon';
+    const rawUrl = getWsUrl();
+    if (!rawUrl) {
+      showJoinError(
+        "Multiplayer server isn't configured for production yet. Set VITE_WS_URL to a wss:// endpoint.",
+      );
+      return;
+    }
 
-  const rawUrl = getWsUrl();
-  if (!rawUrl) {
-    showJoinError(
-      "Multiplayer server isn't configured for production yet. Set VITE_WS_URL to a wss:// endpoint.",
-    );
-    return;
-  }
+    const wsUrl = normalizeWsUrl(rawUrl);
 
-  const wsUrl = normalizeWsUrl(rawUrl);
+    try {
+      await socket.connect(wsUrl);
+      socket.sendJoin(state.playerName);
 
-  try {
-    await socket.connect(wsUrl);
-    socket.sendJoin(playerName);
-
-    joinScreen.style.display = 'none';
-    hud.show();
-  } catch (e) {
-    console.error('Failed to connect:', e);
-    showJoinError('Could not connect to server. Make sure the server is running.');
-  }
-}
-
-joinBtn.addEventListener('click', startGame);
-nameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') startGame();
+      joinScreen.style.display = 'none';
+      hud.show();
+    } catch (e) {
+      console.error('Failed to connect:', e);
+      showJoinError('Could not connect to server. Make sure the server is running.');
+    }
+  },
+  showError: showJoinError,
 });
 
 // ── Socket handlers ──────────────────────────────────
 socket.onWelcome = (msg) => {
-  playerId = msg.playerId;
+  state.playerId = msg.playerId;
   hud.setPlayerId(msg.playerId);
   playerMesh.addToScene(sceneManager.scene);
-  sessionEndsAt = msg.sessionEndsAt;
-  sessionId = msg.sessionId;
+  state.sessionEndsAt = msg.sessionEndsAt;
+  state.sessionId = msg.sessionId;
   sessionTimeline.setVisible(true);
-  console.log(`[Game] Joined as ${playerId}, arena=${msg.arena}`);
+  console.log(`[Game] Joined as ${state.playerId}, arena=${msg.arena}`);
 };
 
 socket.onSnapshot = (msg) => {
-  if (gamePhase === 'GAME_OVER' || gamePhase === 'MULTIPLIER') return;
+  if (state.gamePhase === 'GAME_OVER' || state.gamePhase === 'MULTIPLIER') return;
   interpolation.pushSnapshot(msg);
 };
 
-let deathKillerName = '';
-let deathTopScores: { name: string; score: number }[] = [];
-
 socket.onDeath = (msg) => {
-  if (sessionLocked) return;
-  sessionLocked = true;
-  gamePhase = 'MULTIPLIER';
-  playerAlive = false;
-  inputFrozen = true;
-  playerFrozen = true;
-  frozenFinalScore = msg.finalScore;
-  playerScore = msg.finalScore;
-  deathKillerName = msg.killerName;
-  deathTopScores = msg.topScores;
+  if (state.sessionLocked) return;
+  state.sessionLocked = true;
+  state.gamePhase = 'MULTIPLIER';
+  state.playerAlive = false;
+  state.inputFrozen = true;
+  state.playerFrozen = true;
+  state.frozenFinalScore = msg.finalScore;
+  state.playerScore = msg.finalScore;
+  state.deathKillerName = msg.killerName;
+  state.deathTopScores = msg.topScores;
   socket.sendInput(0, 0, prediction.nextSeq());
-  multiplierOverlay.mount();
-  multiplierOverlay.show(msg.finalScore, (multiplier) => {
-    frozenFinalScore = Math.floor(msg.finalScore * multiplier);
-    playerScore = frozenFinalScore;
-    addScoresToTopScoresToday([{ name: playerName, score: frozenFinalScore }]);
-    saveBestScoreIfHigher(frozenFinalScore);
-    if (playerId) socket.sendGameOver(frozenFinalScore, playerName, sessionId);
-    gamePhase = 'GAME_OVER';
-    multiplierOverlay.hide();
-    hud.showDeathWithMultiplier(
-      deathKillerName,
-      multiplier,
-      msg.finalScore,
-      frozenFinalScore,
-      playerName,
-      deathTopScores,
-    );
+  runMultiplierFlow(msg.finalScore, state.sessionId, gameOverDeps, (multipliedScore) => {
+    state.playerScore = multipliedScore;
   });
 };
 
 socket.onRespawn = () => {
-  playerAlive = true;
+  state.playerAlive = true;
   // Input stays frozen until "Play Again" is clicked
 };
 
@@ -261,13 +209,13 @@ socket.onNewGameStarted = () => {
   console.log('[Game] New game started — resetting client state (per-player respawn)');
 
   // Reset local state
-  gamePhase = 'PLAYING';
-  playerMass = BASE_MASS;
-  playerScore = 0;
-  playerAlive = true;
-  inputFrozen = false;
-  playerFrozen = false;
-  sessionLocked = false;
+  state.gamePhase = 'PLAYING';
+  state.playerMass = BASE_MASS;
+  state.playerScore = 0;
+  state.playerAlive = true;
+  state.inputFrozen = false;
+  state.playerFrozen = false;
+  state.sessionLocked = false;
 
   hud.hideDeath();
   hud.hideLeaderboard();
@@ -275,8 +223,8 @@ socket.onNewGameStarted = () => {
   // Clear network buffers
   interpolation.reset();
   prediction.reset();
-  smoothedVelX = 0;
-  smoothedVelZ = 0;
+  state.smoothedVelX = 0;
+  state.smoothedVelZ = 0;
 
   // Remove all enemy meshes from scene
   for (const [id, enemy] of enemyMeshes) {
@@ -294,40 +242,36 @@ socket.onNewGameStarted = () => {
   nameTags.clear();
 
   // Cancel all active merge animations
-  for (const anim of mergeAnims) {
-    sceneManager.scene.remove(anim.object);
-  }
-  mergeAnims.length = 0;
-  entityParentIds.clear();
+  mergeAnimManager.clearAll(sceneManager.scene);
 
   // Pellet store unchanged (per-player respawn; pellets not regenerated)
 };
 
 // ── Room session ended (timer expiry → Game Over for all) ─────────
 socket.onRoomSessionEnded = (msg) => {
-  if (msg.sessionId <= sessionId) return; // Guard against duplicate
+  if (msg.sessionId <= state.sessionId) return; // Guard against duplicate
   const endedSessionId = msg.sessionId - 1; // Session we just finished (server sends new id)
-  sessionId = msg.sessionId;
-  sessionEndsAt = msg.sessionEndsAt;
+  state.sessionId = msg.sessionId;
+  state.sessionEndsAt = msg.sessionEndsAt;
 
   console.log('[Game] Session ended — showing Game Over');
-  if (sessionLocked) return;
-  sessionLocked = true;
+  if (state.sessionLocked) return;
+  state.sessionLocked = true;
 
-  const baseScore = playerScore;
-  frozenFinalScore = baseScore;
-  playerFrozen = true;
-  inputFrozen = true;
-  gamePhase = 'MULTIPLIER';
-  deathKillerName = 'Session ended';
-  deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  const baseScore = state.playerScore;
+  state.frozenFinalScore = baseScore;
+  state.playerFrozen = true;
+  state.inputFrozen = true;
+  state.gamePhase = 'MULTIPLIER';
+  state.deathKillerName = 'Session ended';
+  state.deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
 
-  // Reset local state so we're clean for Start New Game
+  // Clear scene so we're clean for Start New Game
   interpolation.reset();
   prediction.reset();
-  smoothedVelX = 0;
-  smoothedVelZ = 0;
+  state.smoothedVelX = 0;
+  state.smoothedVelZ = 0;
   for (const [id, enemy] of enemyMeshes) {
     enemy.removeFromScene(sceneManager.scene);
     enemyMeshes.delete(id);
@@ -337,30 +281,9 @@ socket.onRoomSessionEnded = (msg) => {
     splitMeshes.delete(id);
   }
   nameTags.clear();
-  for (const anim of mergeAnims) {
-    sceneManager.scene.remove(anim.object);
-  }
-  mergeAnims.length = 0;
-  entityParentIds.clear();
+  mergeAnimManager.clearAll(sceneManager.scene);
 
-  multiplierOverlay.mount();
-  multiplierOverlay.show(frozenFinalScore, (multiplier) => {
-    const multipliedScore = Math.floor(frozenFinalScore * multiplier);
-    frozenFinalScore = multipliedScore;
-    addScoresToTopScoresToday([{ name: playerName, score: multipliedScore }]);
-    saveBestScoreIfHigher(multipliedScore);
-    if (playerId) socket.sendGameOver(multipliedScore, playerName, endedSessionId);
-    multiplierOverlay.hide();
-    gamePhase = 'GAME_OVER';
-    hud.showDeathWithMultiplier(
-      deathKillerName,
-      multiplier,
-      baseScore,
-      multipliedScore,
-      playerName,
-      deathTopScores,
-    );
-  });
+  runMultiplierFlow(baseScore, endedSessionId, gameOverDeps);
 };
 
 // ── Pellet event handlers ────────────────────────────
@@ -385,14 +308,14 @@ function gameLoop(now: number): void {
   const dt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
-  if (!playerId) {
+  if (!state.playerId) {
     sceneManager.render();
     return;
   }
 
-  if (sessionLocked || gamePhase === 'GAME_OVER' || gamePhase === 'LEADERBOARD' || gamePhase === 'MULTIPLIER') {
+  if (state.sessionLocked || state.gamePhase === 'GAME_OVER' || state.gamePhase === 'LEADERBOARD' || state.gamePhase === 'MULTIPLIER') {
     sessionTimeline.setVisible(false);
-    const displayScore = gamePhase === 'GAME_OVER' ? frozenFinalScore : playerScore;
+    const displayScore = state.gamePhase === 'GAME_OVER' ? state.frozenFinalScore : state.playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
     hud.updateLeaderboard(interpolation.leaderboard, { isMobile: isMobile(), isInGame: false });
@@ -403,8 +326,8 @@ function gameLoop(now: number): void {
   sessionTimeline.setVisible(true);
 
   // ── Session timer (PLAYING only) — server-authoritative; no client expiry trigger ─────────
-  if (sessionEndsAt > 0) {
-    sessionTimeline.update(sessionEndsAt);
+  if (state.sessionEndsAt > 0) {
+    sessionTimeline.update(state.sessionEndsAt);
   }
 
   // ── 1. Update interpolation for remote entities ────
@@ -413,25 +336,25 @@ function gameLoop(now: number): void {
   // ── 2. Check for new snapshot → reconcile once ─────
   const hasNew = interpolation.consumeNewSnapshot();
 
-  if (hasNew && !playerFrozen) {
+  if (hasNew && !state.playerFrozen) {
     // Find the main player entity (parentId === null, id === playerId)
     const myRawEntity = interpolation.latestEntities.find(
-      (e) => e.id === playerId && e.parentId === null,
+      (e) => e.id === state.playerId && e.parentId === null,
     );
     if (myRawEntity) {
-      playerMass = myRawEntity.mass;
-      playerAlive = myRawEntity.alive;
+      state.playerMass = myRawEntity.mass;
+      state.playerAlive = myRawEntity.alive;
 
       if (myRawEntity.alive) {
         // Score = total mass of ALL owned blobs (main + split cells)
-        playerScore = myRawEntity.mass;
+        state.playerScore = myRawEntity.mass;
         for (const e of interpolation.latestEntities) {
-          if (e.parentId === playerId && e.alive) {
-            playerScore += e.mass;
+          if (e.parentId === state.playerId && e.alive) {
+            state.playerScore += e.mass;
           }
         }
         const hasSplitCellsReconcile = interpolation.latestEntities.some(
-          (e) => e.parentId === playerId && e.alive,
+          (e) => e.parentId === state.playerId && e.alive,
         );
         prediction.reconcile(
           myRawEntity.x,
@@ -446,37 +369,37 @@ function gameLoop(now: number): void {
   }
 
   // ── 3. Input ───────────────────────────────────────
-  if (!inputFrozen) {
+  if (!state.inputFrozen) {
     input.update(sceneManager.camera, prediction.renderX, prediction.renderZ);
 
-    if (now - lastInputSendTime >= INPUT_SEND_RATE) {
+    if (now - state.lastInputSendTime >= INPUT_SEND_RATE) {
       const seq = prediction.nextSeq();
       socket.sendInput(input.dirX, input.dirZ, seq);
-      lastInputSendTime = now;
+      state.lastInputSendTime = now;
     }
   }
 
   // ── 3b. Split (spacebar) ───────────────────────────
-  if (!inputFrozen && input.consumeSplit() && playerAlive) {
+  if (!state.inputFrozen && input.consumeSplit() && state.playerAlive) {
     socket.sendSplit();
   }
 
   // ── 4. Client-side prediction (every frame) ────────
-  const hasSplitCells = interpolation.entities.some((e) => e.parentId === playerId && e.alive);
-  if (!inputFrozen && !playerFrozen) {
-    prediction.applyInput(input.dirX, input.dirZ, dt, playerMass, hasSplitCells);
+  const hasSplitCells = interpolation.entities.some((e) => e.parentId === state.playerId && e.alive);
+  if (!state.inputFrozen && !state.playerFrozen) {
+    prediction.applyInput(input.dirX, input.dirZ, dt, state.playerMass, hasSplitCells);
   }
 
   // ── 5. Update player mesh at VISUAL position ──────
-  if (playerAlive) {
-    playerMesh.update(prediction.renderX, prediction.renderZ, playerMass, dt);
+  if (state.playerAlive) {
+    playerMesh.update(prediction.renderX, prediction.renderZ, state.playerMass, dt);
     playerMesh.mesh.visible = true;
 
     // Player name tag (HTML overlay)
-    const pr = massToRadius(playerMass);
+    const pr = massToRadius(state.playerMass);
     nameTags.update(
-      playerId,
-      playerName,
+      state.playerId!,
+      state.playerName,
       playerMesh.mesh.position.x,
       playerMesh.mesh.position.y + pr + 0.5,
       playerMesh.mesh.position.z,
@@ -493,13 +416,13 @@ function gameLoop(now: number): void {
     if (!entity.alive) continue;
 
     // Track parentId for merge detection later
-    entityParentIds.set(entity.id, entity.parentId);
+    mergeAnimManager.trackEntity(entity.id, entity.parentId);
 
     // Skip the main player entity (rendered via prediction)
-    if (entity.id === playerId && entity.parentId === null) continue;
+    if (entity.id === state.playerId && entity.parentId === null) continue;
 
     // My own split cells → render as player-colored spheres
-    if (entity.parentId === playerId) {
+    if (entity.parentId === state.playerId) {
       activeSplitIds.add(entity.id);
 
       let mesh = splitMeshes.get(entity.id);
@@ -515,7 +438,7 @@ function gameLoop(now: number): void {
       const sr = massToRadius(entity.mass);
       nameTags.update(
         entity.id,
-        playerName,
+        state.playerName,
         mesh.mesh.position.x,
         mesh.mesh.position.y + sr + 0.5,
         mesh.mesh.position.z,
@@ -547,94 +470,12 @@ function gameLoop(now: number): void {
     );
   }
 
-  // Clean up removed enemies — start merge anim if it was a split cell
-  for (const [id, enemy] of enemyMeshes) {
-    if (!activeEnemyIds.has(id)) {
-      const parentId = entityParentIds.get(id);
-      if (parentId) {
-        // This was a split cell that merged/disappeared → animate
-        mergeAnims.push({
-          type: 'enemy',
-          object: enemy.group,
-          startX: enemy.group.position.x,
-          startZ: enemy.group.position.z,
-          startScale: enemy.sphere.scale.x,
-          parentId,
-          startTime: now,
-        });
-        // Detach from tracked map but keep in scene for animation
-        enemyMeshes.delete(id);
-      } else {
-        enemy.removeFromScene(sceneManager.scene);
-        enemyMeshes.delete(id);
-      }
-      entityParentIds.delete(id);
-    }
-  }
+  // Clean up removed enemies / merged split cells — start merge animations
+  mergeAnimManager.pruneEnemies(activeEnemyIds, enemyMeshes, sceneManager.scene, now);
+  mergeAnimManager.pruneSplitCells(activeSplitIds, splitMeshes, state.playerId!, now);
 
-  // Clean up merged/eaten split cells — start merge anim
-  for (const [id, mesh] of splitMeshes) {
-    if (!activeSplitIds.has(id)) {
-      const parentId = entityParentIds.get(id) ?? playerId;
-      mergeAnims.push({
-        type: 'player',
-        object: mesh.mesh,
-        startX: mesh.mesh.position.x,
-        startZ: mesh.mesh.position.z,
-        startScale: mesh.mesh.scale.x,
-        parentId: parentId!,
-        startTime: now,
-      });
-      splitMeshes.delete(id);
-      entityParentIds.delete(id);
-    }
-  }
-
-  // ── 6b. Update merge animations ───────────────────
-  for (let i = mergeAnims.length - 1; i >= 0; i--) {
-    const anim = mergeAnims[i];
-    const elapsed = now - anim.startTime;
-    const t = Math.min(elapsed / MERGE_ANIM_DURATION, 1);
-    // Ease-in curve for smooth acceleration toward parent
-    const ease = t * t;
-
-    // Find the parent entity's current visual position
-    let targetX = anim.startX;
-    let targetZ = anim.startZ;
-    if (anim.parentId === playerId) {
-      targetX = prediction.renderX;
-      targetZ = prediction.renderZ;
-    } else {
-      const parentEntity = interpolation.entities.find((e) => e.id === anim.parentId);
-      if (parentEntity) {
-        targetX = parentEntity.x;
-        targetZ = parentEntity.z;
-      }
-    }
-
-    // Lerp position toward parent + shrink scale to zero
-    const ax = anim.startX + (targetX - anim.startX) * ease;
-    const az = anim.startZ + (targetZ - anim.startZ) * ease;
-    const scale = Math.max(0.01, anim.startScale * (1 - ease));
-    // y = scale keeps the sphere sitting on the ground as it shrinks
-    anim.object.position.set(ax, scale, az);
-    if (anim.object instanceof THREE.Group) {
-      // EnemyMesh group: scale the sphere child
-      anim.object.children[0].scale.setScalar(scale);
-      // Face sprite
-      if (anim.object.children[1]) {
-        (anim.object.children[1] as THREE.Sprite).scale.setScalar(scale * 1.3);
-      }
-    } else {
-      anim.object.scale.setScalar(scale);
-    }
-
-    if (t >= 1) {
-      // Animation complete → remove from scene
-      sceneManager.scene.remove(anim.object);
-      mergeAnims.splice(i, 1);
-    }
-  }
+  // ── 6b. Advance merge animations ──────────────────
+  mergeAnimManager.update(state.playerId!, prediction.renderX, prediction.renderZ, interpolation.entities, sceneManager.scene, now);
 
   // ── 6c. Clean up stale name tags ──────────────────
   nameTags.endFrame();
@@ -643,21 +484,21 @@ function gameLoop(now: number): void {
   pelletManager.update(pelletStore.getArray(), pelletStore.version);
 
   // ── 8. Camera follows VISUAL position ──────────────
-  const speed = massToSpeed(playerMass);
+  const speed = massToSpeed(state.playerMass);
   const targetVelX = input.dirX * speed;
   const targetVelZ = input.dirZ * speed;
-  smoothedVelX += (targetVelX - smoothedVelX) * VELOCITY_SMOOTHING;
-  smoothedVelZ += (targetVelZ - smoothedVelZ) * VELOCITY_SMOOTHING;
-  if (Math.abs(smoothedVelX) < VELOCITY_DEAD_ZONE) smoothedVelX = 0;
-  if (Math.abs(smoothedVelZ) < VELOCITY_DEAD_ZONE) smoothedVelZ = 0;
-  sceneManager.followTarget(prediction.renderX, prediction.renderZ, playerMass, dt, smoothedVelX, smoothedVelZ);
+  state.smoothedVelX += (targetVelX - state.smoothedVelX) * VELOCITY_SMOOTHING;
+  state.smoothedVelZ += (targetVelZ - state.smoothedVelZ) * VELOCITY_SMOOTHING;
+  if (Math.abs(state.smoothedVelX) < VELOCITY_DEAD_ZONE) state.smoothedVelX = 0;
+  if (Math.abs(state.smoothedVelZ) < VELOCITY_DEAD_ZONE) state.smoothedVelZ = 0;
+  sceneManager.followTarget(prediction.renderX, prediction.renderZ, state.playerMass, dt, state.smoothedVelX, state.smoothedVelZ);
 
   // ── 9. HUD ─────────────────────────────────────────
-  hud.updateScore(playerScore);
+  hud.updateScore(state.playerScore);
   hud.updateLeaderboard(interpolation.leaderboard, {
     isMobile: isMobile(),
     isInGame: true,
-    fallbackScore: playerScore,
+    fallbackScore: state.playerScore,
   });
 
   // ── 10. Render ─────────────────────────────────────
