@@ -1,3 +1,4 @@
+import type { LeaderboardEntry } from '@orbeats/shared';
 import { BASE_MASS } from '@orbeats/shared';
 
 export type GamePhase = 'PLAYING' | 'LEADERBOARD' | 'GAME_OVER' | 'MULTIPLIER';
@@ -21,6 +22,8 @@ export interface GameState {
   smoothedVelX: number;
   smoothedVelZ: number;
   lastInputSendTime: number;
+  /** Single source of truth for in-game leaderboard. Updated only from server Leaderboard messages. */
+  liveLeaderboard: LeaderboardEntry[];
 }
 
 export function createGameState(): GameState {
@@ -42,5 +45,6 @@ export function createGameState(): GameState {
     smoothedVelX: 0,
     smoothedVelZ: 0,
     lastInputSendTime: 0,
+    liveLeaderboard: [],
   };
 }

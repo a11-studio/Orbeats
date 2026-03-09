@@ -9,10 +9,10 @@ import type { IncomingMessage } from 'http';
 /** Max WS connections per IP. Prevents single IP from exhausting server. */
 export const MAX_CONN_PER_IP = 8;
 
-/** Token bucket: max tokens per second. Normal gameplay ~20–30 msg/s. */
-export const MAX_MSG_PER_SEC = 25;
-/** Token bucket: burst capacity. Allows short spikes. */
-export const BURST = 40;
+/** Token bucket: max tokens per second. Client sends Input at 30Hz; allow headroom. */
+export const MAX_MSG_PER_SEC = 40;
+/** Token bucket: burst capacity. Allows short spikes (join + pellets + input). */
+export const BURST = 60;
 /** Strikes before closing connection (rate limit violations + parse errors). */
 export const RATE_LIMIT_STRIKES_BEFORE_CLOSE = 3;
 

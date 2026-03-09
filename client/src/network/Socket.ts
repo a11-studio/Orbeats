@@ -30,6 +30,8 @@ export class GameSocket {
   private ws: WebSocket | null = null;
   private _connected: boolean = false;
   private connectPromise: Promise<void> | null = null;
+  private lastSkippedLogTime = 0;
+  private readonly SKIP_LOG_THROTTLE_MS = 2000;
 
   onSnapshot: SnapshotHandler | null = null;
   onLeaderboard: LeaderboardHandler | null = null;
@@ -59,21 +61,23 @@ export class GameSocket {
         this._connected = true;
         this.connectPromise = null;
         this.onWsOpen?.();
-        console.log('[Socket] Connected');
+        console.log('[Socket] onopen');
         resolve();
       };
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (ev: CloseEvent) => {
         this._connected = false;
         this.connectPromise = null;
         this.ws = null;
-        console.log('[Socket] Disconnected');
+        console.log(
+          `[Socket] onclose code=${ev.code} reason="${ev.reason}" wasClean=${ev.wasClean} readyStateBefore=CLOSED`,
+        );
       };
 
       this.ws.onerror = (e) => {
         this.connectPromise = null;
         this.ws = null;
-        console.error('[Socket] Error', e);
+        console.error('[Socket] onerror', e);
         reject(e);
       };
 
@@ -121,8 +125,22 @@ export class GameSocket {
   }
 
   send(msg: ClientMsg): void {
-    if (this.ws && this._connected) {
-      this.ws.send(JSON.stringify(msg));
+    if (!this.ws) {
+      this.logSkippedSend('no ws', msg.type);
+      return;
+    }
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      this.logSkippedSend(`readyState=${this.ws.readyState}`, msg.type);
+      return;
+    }
+    this.ws.send(JSON.stringify(msg));
+  }
+
+  private logSkippedSend(reason: string, type: string): void {
+    const now = Date.now();
+    if (now - this.lastSkippedLogTime >= this.SKIP_LOG_THROTTLE_MS) {
+      this.lastSkippedLogTime = now;
+      console.log(`[Socket] send skipped (${reason}) type=${type}`);
     }
   }
 

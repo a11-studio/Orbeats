@@ -43,7 +43,9 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
   // Part A: Connection limit per IP — reject if too many from same IP
   const currentCount = ipConnCount.get(clientIp) ?? 0;
   if (currentCount >= MAX_CONN_PER_IP) {
-    console.log(`[WS] Rejected (too many connections): IP ${clientIp} has ${currentCount} connections`);
+    console.log(
+      `[WS] Server-initiated close: too many connections (IP ${clientIp} has ${currentCount})`,
+    );
     ws.close(1008, 'Too many connections');
     return;
   }
@@ -68,7 +70,9 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     if (!consumeToken(bucket)) {
       bucket.strikes += 1;
       if (bucket.strikes >= RATE_LIMIT_STRIKES_BEFORE_CLOSE) {
-        console.log(`[WS] Rate limit exceeded, closing: ${connId} (${bucket.strikes} strikes)`);
+        console.log(
+          `[WS] Server-initiated close: rate limit exceeded connId=${connId} strikes=${bucket.strikes}`,
+        );
         ws.close(1008, 'Rate limit exceeded');
       }
       return; // Drop message
@@ -137,19 +141,27 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       bucket.strikes += 1;
       console.error('[WS] Invalid message:', e);
       if (bucket.strikes >= RATE_LIMIT_STRIKES_BEFORE_CLOSE) {
-        console.log(`[WS] Parse/rate limit strikes exceeded, closing: ${connId}`);
+        console.log(
+          `[WS] Server-initiated close: invalid message connId=${connId} strikes=${bucket.strikes}`,
+        );
         ws.close(1008, 'Invalid message');
       }
     }
   });
 
-  ws.on('close', () => {
-    console.log(`[WS] Disconnected: ${connId}`);
+  ws.on('close', (code: number, reason: Buffer) => {
+    const reasonStr = reason?.toString?.() || '';
+    console.log(
+      `[WS] onclose playerId=${playerId ?? '?'} connId=${connId} code=${code} reason="${reasonStr}"`,
+    );
     closeAndCleanup();
   });
 
   ws.on('error', (err) => {
-    console.error(`[WS] Error on ${connId}:`, err.message);
+    console.error(
+      `[WS] onerror playerId=${playerId ?? '?'} connId=${connId}:`,
+      err.message,
+    );
     closeAndCleanup();
   });
 });

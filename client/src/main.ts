@@ -93,7 +93,7 @@ function triggerGameOverFlow(): void {
   state.inputFrozen = true;
   state.gamePhase = 'MULTIPLIER';
   state.deathKillerName = 'Session ended';
-  state.deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  state.deathTopScores = state.liveLeaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
   runMultiplierFlow(baseScore, state.sessionId, gameOverDeps);
 }
@@ -223,7 +223,10 @@ socket.onSnapshot = (msg) => {
   interpolation.pushSnapshot(msg);
 };
 socket.onLeaderboard = (msg) => {
-  interpolation.pushLeaderboard(msg.leaderboard);
+  state.liveLeaderboard = msg.leaderboard;
+  if (import.meta.env?.DEV) {
+    console.log(`[Leaderboard] liveLeaderboard updated rows=${state.liveLeaderboard.length}`);
+  }
 };
 
 socket.onDeath = (msg) => {
@@ -266,6 +269,7 @@ socket.onNewGameStarted = () => {
   // Clear network buffers
   interpolation.reset();
   prediction.reset();
+  state.liveLeaderboard = [];
   state.smoothedVelX = 0;
   state.smoothedVelZ = 0;
 
@@ -292,7 +296,9 @@ socket.onNewGameStarted = () => {
 
 // ── Room session ended (timer expiry → Game Over for all) ─────────
 socket.onRoomSessionEnded = (msg) => {
-  console.log(`[Game] RoomSessionEnded received sessionId=${msg.sessionId} sessionEndsAt=${msg.sessionEndsAt}`);
+  console.log(
+    `[Game] RoomSessionEnded received sessionId=${msg.sessionId} sessionEndsAt=${msg.sessionEndsAt} socketOpen=${socket.connected}`,
+  );
   if (msg.sessionId <= state.sessionId) return; // Guard against duplicate
   const endedSessionId = msg.sessionId - 1; // Session we just finished (server sends new id)
   state.sessionId = msg.sessionId;
@@ -308,7 +314,7 @@ socket.onRoomSessionEnded = (msg) => {
   state.inputFrozen = true;
   state.gamePhase = 'MULTIPLIER';
   state.deathKillerName = 'Session ended';
-  state.deathTopScores = interpolation.leaderboard.map((e) => ({ name: e.name, score: e.score }));
+  state.deathTopScores = state.liveLeaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
 
   // Clear scene so we're clean for Start New Game
@@ -327,13 +333,17 @@ socket.onRoomSessionEnded = (msg) => {
   nameTags.clear();
   mergeAnimManager.clearAll(sceneManager.scene);
 
+  console.log(
+    `[Game] gameOver flow starting (multiplier) socketOpen=${socket.connected}`,
+  );
   runMultiplierFlow(baseScore, endedSessionId, gameOverDeps);
 };
 
 // ── Pellet event handlers ────────────────────────────
 socket.onPelletSync = (msg) => {
   pelletStore.sync(msg.pellets);
-  console.log(`[Game] PelletSync received pellets=${msg.pellets.length}`);
+  const t = Date.now();
+  console.log(`[Game] PelletSync received pellets=${msg.pellets.length} t=${t}`);
   // Gate gameplay: hide join screen only after initial pellet sync (ensures pellets visible on start)
   if (state.playerId && joinScreen.style.display !== 'none') {
     joinBtn.textContent = 'PLAY';
@@ -371,7 +381,7 @@ function gameLoop(now: number): void {
     const displayScore = state.gamePhase === 'GAME_OVER' ? state.frozenFinalScore : state.playerScore;
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
-    hud.updateLeaderboard(interpolation.leaderboard, { isMobile: isMobile(), isInGame: false });
+    hud.updateLeaderboard(state.liveLeaderboard, { isMobile: isMobile(), isInGame: false });
     sceneManager.render();
     return;
   }
@@ -548,7 +558,7 @@ function gameLoop(now: number): void {
 
   // ── 9. HUD ─────────────────────────────────────────
   hud.updateScore(state.playerScore);
-  hud.updateLeaderboard(interpolation.leaderboard, {
+  hud.updateLeaderboard(state.liveLeaderboard, {
     isMobile: isMobile(),
     isInGame: true,
     fallbackScore: state.playerScore,

@@ -44,24 +44,39 @@ export class GameLoop {
       // Room session timer: when expired, reset world and broadcast to all
       if (this.sessionEndsAt > 0 && now >= this.sessionEndsAt) {
         const oldSession = this.sessionId;
+        const clientCount = this.clients.size;
+        console.log(
+          `[SESSION-END] timer expired sessionId=${oldSession} clients=${clientCount} — broadcast RoomSessionEnded`,
+        );
         this.sessionEndsAt = now + SESSION_MS;
         this.sessionId++;
-        console.log(
-          `[ROOM RESET] Session expired oldSession=${oldSession} newSession=${this.sessionId} clients=${this.clients.size}`,
-        );
+        console.log(`[SESSION-END] resetWorld begin`);
         this.world.resetWorld();
         if (this.world.hasPelletEvents()) this.world.flushPelletEvents();
+        console.log(`[SESSION-END] resetWorld end`);
         const msg = buildRoomSessionEnded(this.sessionId, this.sessionEndsAt);
         for (const ws of this.clients.values()) {
           sendJSON(ws, msg);
         }
-        const pelletMsg = buildPelletSync(this.world.pellets.toStateArray());
+        const resetPellets = this.world.pellets.toStateArray();
+        const pelletMsg = buildPelletSync(resetPellets);
         for (const ws of this.clients.values()) {
           sendJSON(ws, pelletMsg);
         }
+        console.log(
+          `[PelletSync] room-reset pellets=${resetPellets.length} clients=${this.clients.size}`,
+        );
+        const afterCount = this.clients.size;
+        if (afterCount < clientCount) {
+          console.log(
+            `[SESSION-END] WARNING: client count dropped ${clientCount}→${afterCount} during broadcast`,
+          );
+        }
         this.broadcastSnapshots();
         this.broadcastLeaderboard(); // Fresh leaderboard immediately (don't wait for 5 Hz interval)
-        console.log(`[ROOM RESET] RoomSessionEnded broadcast to ${this.clients.size} clients`);
+        console.log(
+          `[SESSION-END] RoomSessionEnded broadcast to ${this.clients.size} clients`,
+        );
       }
 
       // Broadcast pellet events immediately after each tick
@@ -139,8 +154,10 @@ export class GameLoop {
     if (this.world.hasPelletEvents()) {
       this.world.flushPelletEvents();
     }
-    const msg = buildPelletSync(this.world.pellets.toStateArray());
+    const pellets = this.world.pellets.toStateArray();
+    const msg = buildPelletSync(pellets);
     sendJSON(ws, msg);
+    console.log(`[PelletSync] initial to client pellets=${pellets.length}`);
   }
 
   private broadcastSnapshots(): void {
@@ -247,9 +264,13 @@ export class GameLoop {
   private broadcastPelletFullSync(): void {
     if (this.clients.size === 0) return;
 
-    const msg = buildPelletSync(this.world.pellets.toStateArray());
+    const pellets = this.world.pellets.toStateArray();
+    const msg = buildPelletSync(pellets);
     for (const ws of this.clients.values()) {
       sendJSON(ws, msg);
     }
+    console.log(
+      `[PelletSync] periodic full sync pellets=${pellets.length} clients=${this.clients.size}`,
+    );
   }
 }
