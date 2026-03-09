@@ -32,6 +32,7 @@ import { InputManager } from './input/InputManager.js';
 import { setupDoubleTapSplit } from './input/DoubleTapSplit.js';
 import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
+import { DeathFadeOverlay } from './ui/DeathFadeOverlay.js';
 import { SessionTimeline } from './ui/SessionTimeline.js';
 import { saveBestScoreIfHigher } from './ui/ScoreManager.js';
 import { setupJoinScreen } from './ui/JoinScreen.js';
@@ -56,9 +57,10 @@ const input = new InputManager();
 const hud = new HUD();
 const multiplierOverlay = new MultiplierOverlay();
 const sessionTimeline = new SessionTimeline();
+const deathFadeOverlay = new DeathFadeOverlay();
 
 // Shared deps for the game-over multiplier flow
-const gameOverDeps: GameOverDeps = { state, socket, multiplierOverlay, hud };
+const gameOverDeps: GameOverDeps = { state, socket, multiplierOverlay, hud, deathFadeOverlay };
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
@@ -66,6 +68,9 @@ const enemyMeshes = new Map<string, EnemyMesh>();
 
 // HTML overlay name tags (constant pixel size)
 const nameTags = new NameTagManager(sceneManager.camera);
+
+/** Frozen label position when player dies — keeps label above blob during fade. */
+let playerDeathLabelAnchor: { x: number; y: number; z: number } | null = null;
 
 // Double-tap to split on mobile (attached to canvas)
 setupDoubleTapSplit(
@@ -95,13 +100,15 @@ function triggerGameOverFlow(): void {
   state.deathKillerName = 'Session ended';
   state.deathTopScores = state.liveLeaderboard.map((e) => ({ name: e.name, score: e.score }));
   socket.sendInput(0, 0, prediction.nextSeq());
-  runMultiplierFlow(baseScore, state.sessionId, gameOverDeps);
+  deathFadeOverlay.mount();
+  deathFadeOverlay.play(() => runMultiplierFlow(baseScore, state.sessionId, gameOverDeps));
 }
 
 function resetGame(): void {
   hud.hideDeath();
   hud.hideLeaderboard();
   multiplierOverlay.hide();
+  playerDeathLabelAnchor = null;
   state.playerFrozen = false;
   state.sessionLocked = false;
   state.gamePhase = 'PLAYING';
@@ -249,8 +256,20 @@ socket.onDeath = (msg) => {
   state.deathKillerName = msg.killerName;
   state.deathTopScores = msg.topScores;
   socket.sendInput(0, 0, prediction.nextSeq());
-  runMultiplierFlow(msg.finalScore, state.sessionId, gameOverDeps, (multipliedScore) => {
-    state.playerScore = multipliedScore;
+
+  const pr = massToRadius(state.playerMass);
+  playerDeathLabelAnchor = {
+    x: playerMesh.mesh.position.x,
+    y: playerMesh.mesh.position.y + pr + 0.5,
+    z: playerMesh.mesh.position.z,
+  };
+
+  deathFadeOverlay.mount();
+  deathFadeOverlay.play(() => {
+    runMultiplierFlow(msg.finalScore, state.sessionId, gameOverDeps, (multipliedScore) => {
+      state.playerScore = multipliedScore;
+      playerDeathLabelAnchor = null;
+    });
   });
 };
 
@@ -273,6 +292,8 @@ socket.onNewGameStarted = () => {
 
   hud.hideDeath();
   hud.hideLeaderboard();
+  deathFadeOverlay.hide();
+  playerDeathLabelAnchor = null;
 
   // Clear network buffers
   interpolation.reset();
@@ -340,11 +361,14 @@ socket.onRoomSessionEnded = (msg) => {
   }
   nameTags.clear();
   mergeAnimManager.clearAll(sceneManager.scene);
+  deathFadeOverlay.hide();
+  playerDeathLabelAnchor = null;
 
   console.log(
     `[Game] gameOver flow starting (multiplier) socketOpen=${socket.connected}`,
   );
-  runMultiplierFlow(baseScore, endedSessionId, gameOverDeps);
+  deathFadeOverlay.mount();
+  deathFadeOverlay.play(() => runMultiplierFlow(baseScore, endedSessionId, gameOverDeps));
 };
 
 // ── Pellet event handlers ────────────────────────────
@@ -390,6 +414,44 @@ function gameLoop(now: number): void {
     hud.updateScore(displayScore);
     sceneManager.followTarget(prediction.renderX, prediction.renderZ, displayScore, dt);
     hud.updateLeaderboard(state.liveLeaderboard, { isMobile: isMobile(), isInGame: false });
+    // Keep all labels visible (player, our split cells, opponents + their split cells) — update from interpolation
+    interpolation.update();
+    if (playerDeathLabelAnchor && state.playerId) {
+      nameTags.update(state.playerId, state.playerName, playerDeathLabelAnchor.x, playerDeathLabelAnchor.y, playerDeathLabelAnchor.z);
+    }
+    for (const entity of interpolation.entities) {
+      if (!entity.alive) continue;
+      if (entity.id === state.playerId && entity.parentId === null) continue;
+      if (entity.parentId === state.playerId) {
+        let mesh = splitMeshes.get(entity.id);
+        if (!mesh) {
+          mesh = new PlayerMesh(0xff3333);
+          mesh.addToScene(sceneManager.scene);
+          splitMeshes.set(entity.id, mesh);
+        }
+        mesh.update(entity.x, entity.z, entity.mass, dt);
+        mesh.mesh.visible = true;
+        const sr = massToRadius(entity.mass);
+        nameTags.update(entity.id, state.playerName, mesh.mesh.position.x, mesh.mesh.position.y + sr + 0.5, mesh.mesh.position.z);
+        continue;
+      }
+      let enemy = enemyMeshes.get(entity.id);
+      if (!enemy) {
+        enemy = new EnemyMesh(entity.color);
+        enemy.addToScene(sceneManager.scene);
+        enemyMeshes.set(entity.id, enemy);
+      }
+      enemy.update(entity.x, entity.z, entity.mass, dt);
+      enemy.setColor(entity.color);
+      nameTags.update(
+        entity.id,
+        entity.name,
+        enemy.group.position.x,
+        enemy.group.position.y + enemy.sphere.scale.x + 0.5,
+        enemy.group.position.z,
+      );
+    }
+    nameTags.endFrame();
     sceneManager.render();
     return;
   }

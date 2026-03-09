@@ -21,6 +21,7 @@ export interface GameOverDeps {
   socket: GameSocket;
   multiplierOverlay: MultiplierOverlay;
   hud: HUD;
+  deathFadeOverlay?: { hide: () => void };
 }
 
 /**

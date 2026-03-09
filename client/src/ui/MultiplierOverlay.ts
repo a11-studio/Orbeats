@@ -49,8 +49,8 @@ export class MultiplierOverlay {
     this.container.style.cssText = `
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: none; align-items: center; justify-content: center;
-      background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%);
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      background: transparent;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
       z-index: 60; font-family: 'Mona Sans', sans-serif;
     `;
     this.bar = this.container.querySelector('#multiplier-bar')!;
