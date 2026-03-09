@@ -42,7 +42,7 @@ export const MASS_DECAY_PER_1000 = 3; // at 2000 mass → 6 pts/s, at 5000 → 1
 // ── Server tick rates ─────────────────────────────────
 export const SERVER_TICK_RATE = 20; // Hz simulation
 export const SERVER_TICK_MS = 1000 / SERVER_TICK_RATE;
-export const BROADCAST_RATE = 15; // Hz snapshot broadcast
+export const BROADCAST_RATE = 20; // Hz snapshot broadcast
 export const BROADCAST_INTERVAL_MS = 1000 / BROADCAST_RATE;
 
 // ── Bots ──────────────────────────────────────────────

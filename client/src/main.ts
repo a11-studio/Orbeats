@@ -127,6 +127,14 @@ const mergeAnimManager = new MergeAnimManager();
 const VELOCITY_SMOOTHING = 0.2;
 const VELOCITY_DEAD_ZONE = 0.001;
 
+const DEBUG_LOCAL_PATH =
+  typeof location !== 'undefined' &&
+  new URLSearchParams(location.search).get('debug_local_path') === '1';
+let lastPathDebugLogTime = 0;
+let snapCountLastSecond = 0;
+let snapCountResetTime = 0;
+let pathDebugEl: HTMLElement | null = null;
+
 // Input sending throttle
 const INPUT_SEND_RATE = 1000 / 30; // 30Hz
 
@@ -426,6 +434,14 @@ function gameLoop(now: number): void {
           interpolation.latestSeq,
           hasSplitCellsReconcile,
         );
+        if (DEBUG_LOCAL_PATH && prediction.lastReconcileWasSnap) {
+          const t = performance.now();
+          if (t - snapCountResetTime > 1000) {
+            snapCountLastSecond = 0;
+            snapCountResetTime = t;
+          }
+          snapCountLastSecond++;
+        }
       }
       // When dead: do NOT update playerScore; wait for Death message with finalScore
     }
@@ -452,6 +468,7 @@ function gameLoop(now: number): void {
   if (!state.inputFrozen && !state.playerFrozen) {
     prediction.applyInput(input.dirX, input.dirZ, dt, state.playerMass, hasSplitCells);
   }
+  prediction.updateCorrection(dt);
 
   // ── 5. Update player mesh at VISUAL position ──────
   if (state.playerAlive) {
@@ -546,7 +563,7 @@ function gameLoop(now: number): void {
   // ── 7. Update pellets from event-driven store ──────
   pelletManager.update(pelletStore.getArray(), pelletStore.version);
 
-  // ── 8. Camera follows VISUAL position ──────────────
+  // ── 8. Camera follows final mesh position ──────────
   const speed = massToSpeed(state.playerMass);
   const targetVelX = input.dirX * speed;
   const targetVelZ = input.dirZ * speed;
@@ -554,7 +571,33 @@ function gameLoop(now: number): void {
   state.smoothedVelZ += (targetVelZ - state.smoothedVelZ) * VELOCITY_SMOOTHING;
   if (Math.abs(state.smoothedVelX) < VELOCITY_DEAD_ZONE) state.smoothedVelX = 0;
   if (Math.abs(state.smoothedVelZ) < VELOCITY_DEAD_ZONE) state.smoothedVelZ = 0;
-  sceneManager.followTarget(prediction.renderX, prediction.renderZ, state.playerMass, dt, state.smoothedVelX, state.smoothedVelZ);
+  const camX = state.playerAlive ? playerMesh.mesh.position.x : prediction.renderX;
+  const camZ = state.playerAlive ? playerMesh.mesh.position.z : prediction.renderZ;
+  sceneManager.followTarget(camX, camZ, state.playerMass, dt, state.smoothedVelX, state.smoothedVelZ);
+
+  if (DEBUG_LOCAL_PATH && state.playerId && now - lastPathDebugLogTime > 100) {
+    lastPathDebugLogTime = now;
+    console.log(
+      `[LocalPath] auth=(${prediction.authoritativeX.toFixed(1)},${prediction.authoritativeZ.toFixed(1)}) ` +
+        `pred=(${prediction.predictedX.toFixed(1)},${prediction.predictedZ.toFixed(1)}) ` +
+        `visual=(${prediction.renderX.toFixed(1)},${prediction.renderZ.toFixed(1)}) ` +
+        `corr=${prediction.correctionMagnitude.toFixed(2)} delta=${prediction.visualAuthDelta.toFixed(2)} ` +
+        `snap=${prediction.lastReconcileWasSnap} snaps/s=${now - snapCountResetTime < 1000 ? snapCountLastSecond : 0}`,
+    );
+  }
+
+  if (DEBUG_LOCAL_PATH && state.playerId) {
+    if (!pathDebugEl) {
+      pathDebugEl = document.createElement('div');
+      pathDebugEl.id = 'path-debug-overlay';
+      pathDebugEl.style.cssText =
+        'position:fixed;top:80px;left:12px;z-index:9999;font:11px monospace;color:#0f0;background:rgba(0,0,0,0.7);padding:8px;border-radius:4px;pointer-events:none;';
+      document.body.appendChild(pathDebugEl);
+    }
+    const snaps = now - snapCountResetTime < 1000 ? snapCountLastSecond : 0;
+    pathDebugEl.textContent =
+      `err=${prediction.lastReconcileErrDist.toFixed(2)} delta=${prediction.visualAuthDelta.toFixed(2)} snaps/s=${snaps}`;
+  }
 
   // ── 9. HUD ─────────────────────────────────────────
   hud.updateScore(state.playerScore);
