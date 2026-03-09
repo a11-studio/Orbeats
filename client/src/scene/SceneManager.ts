@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { createFloor } from './Floor.js';
 
-const CAMERA_HEIGHT = 68;
-const CAMERA_BACK = 50;
+const CAMERA_HEIGHT = 88;
+const CAMERA_BACK = 65;
 
 // ── WebGL Support Detection ──────────────────────────────
 function isWebGLAvailable(): boolean {
@@ -165,28 +165,17 @@ export class SceneManager {
     this.scene.add(fill);
   }
 
-  /** Camera smoothing factor (0.1 = smooth follow, no snapping) */
-  private readonly cameraSmoothing = 0.1;
+  /** Camera smoothing factor (lower = smoother follow) */
+  private readonly cameraSmoothing = 0.065;
 
-  followTarget(x: number, z: number, _mass: number, _dt: number, _velX: number = 0, velZ: number = 0): void {
-    // Always interpolate camera target toward player (no early return to avoid jitter)
+  followTarget(x: number, z: number, _mass: number, _dt: number, _velX: number = 0, _velZ: number = 0): void {
     this.cameraTargetX += (x - this.cameraTargetX) * this.cameraSmoothing;
     this.cameraTargetZ += (z - this.cameraTargetZ) * this.cameraSmoothing;
 
-    let dynamicHeight = CAMERA_HEIGHT;
-    let dynamicBack = CAMERA_BACK;
-    if (Math.abs(velZ) > 0.1) {
-      const strength = Math.min(Math.abs(velZ) * 0.02, 0.15);
-      dynamicHeight += dynamicHeight * strength;
-      dynamicBack += dynamicBack * strength;
-    }
-    dynamicHeight *= 1.25;
-    dynamicBack *= 1.25;
-
     this.desiredPos.set(
       this.cameraTargetX,
-      dynamicHeight,
-      this.cameraTargetZ + dynamicBack,
+      CAMERA_HEIGHT,
+      this.cameraTargetZ + CAMERA_BACK,
     );
     this.camera.position.lerp(this.desiredPos, this.cameraSmoothing);
     this.camera.lookAt(this.cameraTargetX, 0, this.cameraTargetZ);

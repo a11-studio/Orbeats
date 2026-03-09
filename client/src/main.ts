@@ -633,8 +633,8 @@ function gameLoop(now: number): void {
   state.smoothedVelZ += (targetVelZ - state.smoothedVelZ) * VELOCITY_SMOOTHING;
   if (Math.abs(state.smoothedVelX) < VELOCITY_DEAD_ZONE) state.smoothedVelX = 0;
   if (Math.abs(state.smoothedVelZ) < VELOCITY_DEAD_ZONE) state.smoothedVelZ = 0;
-  const camX = state.playerAlive ? playerMesh.mesh.position.x : prediction.renderX;
-  const camZ = state.playerAlive ? playerMesh.mesh.position.z : prediction.renderZ;
+  const camX = prediction.renderX;
+  const camZ = prediction.renderZ;
   sceneManager.followTarget(camX, camZ, state.playerMass, dt, state.smoothedVelX, state.smoothedVelZ);
 
   if (DEBUG_LOCAL_PATH && state.playerId && now - lastPathDebugLogTime > 100) {

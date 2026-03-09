@@ -4,7 +4,7 @@ import { massToSpeed, ARENA_HALF, massToRadius, SPLIT_SPEED_BONUS } from '@orbea
 /** Distance threshold: only hard-snap when error exceeds this (rare) */
 export const SNAP_THRESHOLD = 18.0;
 /** How fast correction blends toward (authoritative - predicted). Lower = smoother. */
-const CORRECTION_SPEED = 5.0;
+const CORRECTION_SPEED = 3.5;
 
 interface InputRecord {
   seq: number;
