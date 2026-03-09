@@ -264,6 +264,16 @@ socket.onDeath = (msg) => {
     z: playerMesh.mesh.position.z,
   };
 
+  playerMesh.mesh.visible = false;
+  mergeAnimManager.startBurst(
+    sceneManager.scene,
+    playerMesh.mesh.position.x,
+    playerMesh.mesh.position.y,
+    playerMesh.mesh.position.z,
+    pr,
+    0xff3333,
+  );
+
   deathFadeOverlay.mount();
   deathFadeOverlay.play(() => {
     runMultiplierFlow(msg.finalScore, state.sessionId, gameOverDeps, (multipliedScore) => {
@@ -416,6 +426,16 @@ function gameLoop(now: number): void {
     hud.updateLeaderboard(state.liveLeaderboard, { isMobile: isMobile(), isInGame: false });
     // Keep all labels visible (player, our split cells, opponents + their split cells) — update from interpolation
     interpolation.update();
+
+    mergeAnimManager.update(
+      state.playerId!,
+      prediction.renderX,
+      prediction.renderZ,
+      interpolation.entities,
+      sceneManager.scene,
+      now,
+    );
+
     if (playerDeathLabelAnchor && state.playerId) {
       nameTags.update(state.playerId, state.playerName, playerDeathLabelAnchor.x, playerDeathLabelAnchor.y, playerDeathLabelAnchor.z);
     }

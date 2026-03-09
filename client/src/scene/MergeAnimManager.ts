@@ -4,6 +4,8 @@
  * When a split cell or enemy disappears from the server snapshot, it should
  * visually shrink toward its parent entity rather than popping out instantly.
  *
+ * When a blob is eaten (no parent), it bursts outward with fragment pieces.
+ *
  * Previously ~80 lines were inlined inside the main game loop.
  * This class owns all the state (entityParentIds, anims[]) and exposes
  * four methods that the game loop calls at the appropriate points.
@@ -24,10 +26,58 @@ interface MergeAnim {
   startTime: number;
 }
 
+/** Fragment burst when blob is eaten — temporary meshes explode outward. */
+interface BurstAnim {
+  container: THREE.Group;
+  fragments: { mesh: THREE.Mesh; dir: THREE.Vector3 }[];
+  spreadRadius: number;
+  fragmentSize: number;
+  startTime: number;
+}
+
 const MERGE_ANIM_DURATION = 300; // ms
+const BURST_DURATION = 280; // ms — punchy, readable
+const BURST_FRAGMENT_COUNT = 14;
+const BURST_FRAGMENT_SIZE_RATIO = 0.26; // fragment radius = 26% of blob radius
+const BURST_SPREAD_RATIO = 2.6; // fragments reach 2.6× blob radius
+
+const fragmentGeo = new THREE.SphereGeometry(1, 12, 8);
+
+function createBurstFragment(color: number, size: number): THREE.Mesh {
+  const mat = new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.12,
+    metalness: 0.35,
+    emissive: new THREE.Color(color).multiplyScalar(0.08),
+    transparent: true,
+    depthWrite: false,
+    opacity: 1,
+  });
+  const mesh = new THREE.Mesh(fragmentGeo, mat);
+  mesh.scale.setScalar(size);
+  return mesh;
+}
+
+/** Pick evenly distributed outward directions for burst. */
+function burstDirections(count: number): THREE.Vector3[] {
+  const dirs: THREE.Vector3[] = [];
+  const goldenRatio = (1 + Math.sqrt(5)) / 2;
+  const angleIncrement = Math.PI * 2 * goldenRatio;
+  for (let i = 0; i < count; i++) {
+    const t = i / count;
+    const inclination = Math.acos(1 - 2 * (t + 0.5) / count);
+    const azimuth = angleIncrement * i;
+    const x = Math.sin(inclination) * Math.cos(azimuth);
+    const y = Math.cos(inclination);
+    const z = Math.sin(inclination) * Math.sin(azimuth);
+    dirs.push(new THREE.Vector3(x, y, z).normalize());
+  }
+  return dirs;
+}
 
 export class MergeAnimManager {
   private anims: MergeAnim[] = [];
+  private burstAnims: BurstAnim[] = [];
 
   /**
    * Last-known parentId for each rendered entity — used to detect merges
@@ -38,6 +88,43 @@ export class MergeAnimManager {
   /** Call for each alive entity during the entity-render loop. */
   trackEntity(id: string, parentId: string | null): void {
     this.entityParentIds.set(id, parentId);
+  }
+
+  /**
+   * Start a fragment burst at the given center. Used for eaten blobs (enemy + player).
+   * Original blob must already be hidden/removed by caller.
+   */
+  startBurst(
+    scene: THREE.Scene,
+    centerX: number,
+    centerY: number,
+    centerZ: number,
+    blobRadius: number,
+    color: number,
+  ): void {
+    const container = new THREE.Group();
+    container.position.set(centerX, centerY, centerZ);
+
+    const fragmentSize = blobRadius * BURST_FRAGMENT_SIZE_RATIO;
+    const spreadRadius = blobRadius * BURST_SPREAD_RATIO;
+    const dirs = burstDirections(BURST_FRAGMENT_COUNT);
+
+    const fragments: { mesh: THREE.Mesh; dir: THREE.Vector3 }[] = [];
+    for (const dir of dirs) {
+      const mesh = createBurstFragment(color, fragmentSize);
+      mesh.position.set(0, 0, 0);
+      container.add(mesh);
+      fragments.push({ mesh, dir });
+    }
+
+    scene.add(container);
+    this.burstAnims.push({
+      container,
+      fragments,
+      spreadRadius,
+      fragmentSize,
+      startTime: performance.now(),
+    });
   }
 
   /**
@@ -55,21 +142,14 @@ export class MergeAnimManager {
     for (const [id, enemy] of enemyMeshes) {
       if (activeIds.has(id)) continue;
 
-      const parentId = this.entityParentIds.get(id);
-      if (parentId) {
-        this.anims.push({
-          type: 'enemy',
-          object: enemy.group,
-          startX: enemy.group.position.x,
-          startZ: enemy.group.position.z,
-          startScale: enemy.sphere.scale.x,
-          parentId,
-          startTime: now,
-        });
-        // Keep mesh in scene (animation will remove it on completion)
-      } else {
-        enemy.removeFromScene(scene);
-      }
+      const r = enemy.sphere.scale.x;
+      const color = (enemy.sphere.material as THREE.MeshStandardMaterial).color.getHex();
+      const cx = enemy.group.position.x;
+      const cy = enemy.group.position.y;
+      const cz = enemy.group.position.z;
+      enemy.removeFromScene(scene);
+      this.startBurst(scene, cx, cy, cz, r, color);
+
       enemyMeshes.delete(id);
       this.entityParentIds.delete(id);
     }
@@ -105,7 +185,7 @@ export class MergeAnimManager {
   }
 
   /**
-   * Per-frame update — advances all active merge animations.
+   * Per-frame update — advances all active merge and burst animations.
    * Removes completed animations from the scene.
    */
   update(
@@ -116,6 +196,27 @@ export class MergeAnimManager {
     scene: THREE.Scene,
     now: number,
   ): void {
+    for (let i = this.burstAnims.length - 1; i >= 0; i--) {
+      const b = this.burstAnims[i];
+      const elapsed = now - b.startTime;
+      const t = Math.min(elapsed / BURST_DURATION, 1);
+      const easeOut = 1 - (1 - t) * (1 - t);
+      const dist = easeOut * b.spreadRadius;
+      const opacity = Math.max(0, 1 - t);
+      const scale = 1 - t * 0.5;
+
+      for (const { mesh, dir } of b.fragments) {
+        mesh.position.copy(dir).multiplyScalar(dist);
+        mesh.scale.setScalar(b.fragmentSize * scale);
+        (mesh.material as THREE.MeshStandardMaterial).opacity = opacity;
+      }
+
+      if (t >= 1) {
+        scene.remove(b.container);
+        this.burstAnims.splice(i, 1);
+      }
+    }
+
     for (let i = this.anims.length - 1; i >= 0; i--) {
       const anim = this.anims[i];
       const elapsed = now - anim.startTime;
@@ -166,6 +267,10 @@ export class MergeAnimManager {
       scene.remove(anim.object);
     }
     this.anims.length = 0;
+    for (const b of this.burstAnims) {
+      scene.remove(b.container);
+    }
+    this.burstAnims.length = 0;
     this.entityParentIds.clear();
   }
 }
