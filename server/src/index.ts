@@ -9,7 +9,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { ClientMsgType, type ClientMsg } from '@orbeats/shared';
 import { GameLoop } from './GameLoop.js';
-import { buildWelcome, sendJSON } from './network.js';
+import { buildWelcome, buildTopScoresResponse, sendJSON } from './network.js';
 import {
   getClientIp,
   incrementIpConn,
@@ -21,7 +21,7 @@ import {
   RATE_LIMIT_STRIKES_BEFORE_CLOSE,
   type TokenBucket,
 } from './security.js';
-import { tryRecordScore } from './scoreStorage.js';
+import { tryRecordScore, getTopScoresToday } from './scoreStorage.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 
@@ -134,6 +134,12 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
           if (!playerId) break;
           const { finalScore, playerName, sessionId } = msg;
           tryRecordScore(playerId, playerName ?? 'Anon', sessionId, Math.floor(finalScore));
+          break;
+        }
+
+        case ClientMsgType.TopScoresRequest: {
+          const scores = getTopScoresToday(10);
+          sendJSON(ws, buildTopScoresResponse(scores));
           break;
         }
       }

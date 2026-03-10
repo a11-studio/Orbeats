@@ -4,14 +4,13 @@ import { isMobile } from '../utils/deviceUtils.js';
 /**
  * Session timeline UI: progress bar + remaining time.
  * Desktop: hover morphs to End Game button.
- * Mobile: ⋯ menu for End Game.
+ * Mobile: tap timeline → morph to End Game → tap again to trigger (same flow as desktop hover).
  */
 export class SessionTimeline {
   private wrap: HTMLElement;
   private timeline: HTMLElement;
   private barFill: HTMLElement;
   private label: HTMLElement;
-  private mobileMenu: HTMLElement;
 
   onEndGameClick: (() => void) | null = null;
 
@@ -20,22 +19,41 @@ export class SessionTimeline {
     this.timeline = document.getElementById('session-timeline')!;
     this.barFill = document.getElementById('timeline-bar-fill')!;
     this.label = document.getElementById('timeline-label')!;
-    this.mobileMenu = document.getElementById('session-timeline-mobile-menu')!;
+    const mobileMenu = document.getElementById('session-timeline-mobile-menu')!;
 
     // Desktop: hover morph
     this.timeline.addEventListener('mouseenter', () => this.setMorph(true));
     this.timeline.addEventListener('mouseleave', () => this.setMorph(false));
 
-    // Click: End Game (when morphed on desktop, or always on mobile via timeline or menu)
+    // Mobile: tap to morph, tap again to trigger (mimics desktop hover)
+    let mobileMorphTimeout: ReturnType<typeof setTimeout> | null = null;
     this.timeline.addEventListener('click', (e) => {
-      if (isMobile()) return; // Mobile uses menu
+      if (isMobile()) {
+        e.preventDefault();
+        if (this.timeline.classList.contains('morph-end-game')) {
+          if (mobileMorphTimeout) clearTimeout(mobileMorphTimeout);
+          mobileMorphTimeout = null;
+          this.onEndGameClick?.();
+          this.setMorph(false);
+        } else {
+          if (mobileMorphTimeout) clearTimeout(mobileMorphTimeout);
+          this.setMorph(true);
+          mobileMorphTimeout = setTimeout(() => {
+            this.setMorph(false);
+            mobileMorphTimeout = null;
+          }, 5000);
+        }
+        return;
+      }
+      // Desktop: click when morphed
       if (this.timeline.classList.contains('morph-end-game')) {
         e.preventDefault();
         this.onEndGameClick?.();
       }
     });
 
-    this.mobileMenu.addEventListener('click', (e) => {
+    // Fallback: ⋯ menu still works on mobile (direct trigger)
+    mobileMenu.addEventListener('click', (e) => {
       e.preventDefault();
       this.onEndGameClick?.();
     });
@@ -44,7 +62,6 @@ export class SessionTimeline {
   }
 
   setMorph(morph: boolean): void {
-    if (isMobile()) return;
     this.timeline.classList.toggle('morph-end-game', morph);
   }
 

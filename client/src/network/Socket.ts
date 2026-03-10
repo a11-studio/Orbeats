@@ -13,10 +13,12 @@ import {
   type PelletSyncMsg,
   type NewGameStartedMsg,
   type RoomSessionEndedMsg,
+  type TopScoresResponseMsg,
 } from '@orbeats/shared';
 
 export type SnapshotHandler = (msg: SnapshotMsg) => void;
 export type LeaderboardHandler = (msg: LeaderboardMsg) => void;
+export type TopScoresResponseHandler = (msg: TopScoresResponseMsg) => void;
 export type WelcomeHandler = (msg: WelcomeMsg) => void;
 export type DeathHandler = (msg: DeathMsg) => void;
 export type RespawnHandler = (msg: RespawnMsg) => void;
@@ -45,6 +47,7 @@ export class GameSocket {
   onPelletSync: PelletSyncHandler | null = null;
   onNewGameStarted: NewGameStartedHandler | null = null;
   onRoomSessionEnded: RoomSessionEndedHandler | null = null;
+  onTopScoresResponse: TopScoresResponseHandler | null = null;
 
   get connected(): boolean {
     return this._connected;
@@ -115,6 +118,9 @@ export class GameSocket {
             case ServerMsgType.RoomSessionEnded:
               this.onRoomSessionEnded?.(msg);
               break;
+            case ServerMsgType.TopScoresResponse:
+              this.onTopScoresResponse?.(msg);
+              break;
           }
         } catch (e) {
           console.error('[Socket] Parse error:', e);
@@ -167,5 +173,9 @@ export class GameSocket {
       playerName,
       sessionId,
     });
+  }
+
+  sendTopScoresRequest(): void {
+    this.send({ type: ClientMsgType.TopScoresRequest });
   }
 }

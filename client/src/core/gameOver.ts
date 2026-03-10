@@ -8,6 +8,9 @@
  *
  * The pre-conditions (setting sessionLocked, deathKillerName, etc.) differ
  * between callers and stay in main.ts.  Only the shared inner loop is here.
+ *
+ * After multiplier: sends GameOver + TopScoresRequest, then calls onGameOverReadyToShow.
+ * Main handles TopScoresResponse and shows overlay with server scores (or fallback).
  */
 
 import { GameState } from './gameState.js';
@@ -16,12 +19,22 @@ import { MultiplierOverlay } from '../ui/MultiplierOverlay.js';
 import { HUD } from '../ui/HUD.js';
 import { saveBestScoreIfHigher, addScoresToTopScoresToday } from '../ui/ScoreManager.js';
 
+export interface GameOverReadyParams {
+  killerName: string;
+  multiplier: number;
+  baseScore: number;
+  multipliedScore: number;
+  playerName: string;
+}
+
 export interface GameOverDeps {
   state: GameState;
   socket: GameSocket;
   multiplierOverlay: MultiplierOverlay;
   hud: HUD;
   deathFadeOverlay?: { hide: () => void };
+  /** Called when multiplier done: GameOver + TopScoresRequest sent. Main shows overlay when TopScoresResponse arrives. */
+  onGameOverReadyToShow?: (params: GameOverReadyParams) => void;
 }
 
 /**
@@ -40,7 +53,7 @@ export function runMultiplierFlow(
   deps: GameOverDeps,
   onComplete?: (multipliedScore: number) => void,
 ): void {
-  const { state, socket, multiplierOverlay, hud } = deps;
+  const { state, socket, multiplierOverlay, hud, onGameOverReadyToShow } = deps;
 
   multiplierOverlay.mount();
   multiplierOverlay.show(baseScore, (multiplier) => {
@@ -51,14 +64,26 @@ export function runMultiplierFlow(
     if (state.playerId) socket.sendGameOver(multipliedScore, state.playerName, sessionIdToReport);
     multiplierOverlay.hide();
     state.gamePhase = 'GAME_OVER';
-    hud.showDeathWithMultiplier(
-      state.deathKillerName,
-      multiplier,
-      baseScore,
-      multipliedScore,
-      state.playerName,
-      state.deathTopScores,
-    );
+
+    if (onGameOverReadyToShow) {
+      socket.sendTopScoresRequest();
+      onGameOverReadyToShow({
+        killerName: state.deathKillerName,
+        multiplier,
+        baseScore,
+        multipliedScore,
+        playerName: state.playerName,
+      });
+    } else {
+      hud.showDeathWithMultiplier(
+        state.deathKillerName,
+        multiplier,
+        baseScore,
+        multipliedScore,
+        state.playerName,
+        state.deathTopScores,
+      );
+    }
     onComplete?.(multipliedScore);
   });
 }

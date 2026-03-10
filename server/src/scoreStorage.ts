@@ -1,7 +1,7 @@
 /**
  * Score storage: DB write gates (MIN_SCORE, cooldown, dedupe).
  * Writes only on GameOver, only if gates pass.
- * Ready for real DB; currently logs. Add DB adapter when needed.
+ * Top Scores Today: in-memory storage, shared across all clients.
  */
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -16,8 +16,24 @@ const PRUNE_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours
 const lastWriteAtByPlayer = new Map<string, number>();
 const writtenSessionKeys = new Map<string, number>(); // key -> timestamp for pruning
 
+/** Top Scores Today: in-memory, keyed by date (YYYY-MM-DD UTC). */
+interface TopScoreEntry {
+  name: string;
+  score: number;
+  timestamp: number;
+}
+const topScoresByDate = new Map<string, TopScoreEntry[]>();
+
 function sessionKey(playerId: string, sessionId: number): string {
   return `${playerId}:${sessionId}`;
+}
+
+function todayKey(): string {
+  const d = new Date();
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** Prune old entries to avoid unbounded growth. */
@@ -73,12 +89,37 @@ export function tryRecordScore(
     return { ok: false, reason: 'cooldown' };
   }
 
-  // All gates passed — perform write (stub: log only; add DB when ready)
-  // TODO: persist to DB (e.g. addScoresToTopScoresToday equivalent on server)
+  // All gates passed — persist to Top Scores Today (in-memory)
+  addToTopScoresToday(playerName, Math.floor(finalScore));
   console.log(`[Score] Recorded: ${playerName} (${playerId}) score ${finalScore} session ${sessionId}`);
 
   lastWriteAtByPlayer.set(playerId, now);
   writtenSessionKeys.set(key, now);
 
   return { ok: true };
+}
+
+/** Add score to Top Scores Today. Keeps highest per name, cap at 10. */
+function addToTopScoresToday(name: string, score: number): void {
+  const key = todayKey();
+  const current = topScoresByDate.get(key) ?? [];
+  const byName = new Map<string, TopScoreEntry>();
+  for (const e of current) {
+    byName.set(e.name, e);
+  }
+  const existing = byName.get(name);
+  if (!existing || score > existing.score) {
+    byName.set(name, { name, score, timestamp: existing?.timestamp ?? Date.now() });
+  }
+  const merged = [...byName.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+  topScoresByDate.set(key, merged);
+}
+
+/** Get Top Scores Today for all clients. Shared, server-authoritative. */
+export function getTopScoresToday(count = 10): { name: string; score: number }[] {
+  const key = todayKey();
+  const entries = topScoresByDate.get(key) ?? [];
+  return entries.slice(0, count).map((e) => ({ name: e.name, score: e.score }));
 }

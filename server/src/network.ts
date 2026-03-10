@@ -12,6 +12,7 @@ import {
   type PelletSyncMsg,
   type NewGameStartedMsg,
   type RoomSessionEndedMsg,
+  type TopScoresResponseMsg,
   type ServerMsg,
   type PelletState,
   ARENA_SIZE,
@@ -120,5 +121,14 @@ export function buildPelletSync(pellets: PelletState[]): PelletSyncMsg {
 export function buildNewGameStarted(): NewGameStartedMsg {
   return {
     type: ServerMsgType.NewGameStarted,
+  };
+}
+
+// ── Top Scores Today ──────────────────────────────────
+
+export function buildTopScoresResponse(scores: { name: string; score: number }[]): TopScoresResponseMsg {
+  return {
+    type: ServerMsgType.TopScoresResponse,
+    scores,
   };
 }

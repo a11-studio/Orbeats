@@ -1,5 +1,6 @@
 import type { LeaderboardEntry } from '@orbeats/shared';
-import { getTopScoresTodayWithFallback } from './ScoreManager.js';
+import { getTopScoresTodayWithFallback, mergeTop10 } from './ScoreManager.js';
+import { getDailyBotTopScores } from '../utils/botLeaderboard.js';
 
 /** "toggle" = Show more/less button. "scroll" = scrollable container (max-height 260px in CSS). */
 const SCORE_LIST_MODE: 'toggle' | 'scroll' = 'toggle';
@@ -72,10 +73,12 @@ export class HUD {
    * In-game leaderboard overlay (visible during gameplay). NOT the Game Over screen.
    * Game Over UI (death-overlay, death-highscore-list) uses "Top Scores Today" (persisted).
    *
-   * LIVE leaderboard: same data on desktop and mobile. Both use the full server-sent list.
-   * Layout can differ (e.g. mobile scroll) but data source is identical.
+   * LIVE leaderboard: full server-sent list is the source of truth for both desktop and mobile.
+   * - Desktop: shows full list.
+   * - Mobile (during gameplay): shows only 3-row contextual slice — above me, me, below me.
+   * Uses playerId for current-player matching (stable identity across devices).
    *
-   * @param options.isMobile - For future layout tweaks (e.g. max-height). Data is never filtered.
+   * @param options.isMobile - When true and isInGame, render 3-row slice for space savings.
    * @param options.isInGame - True during active gameplay (PLAYING). False on game over / other screens.
    * @param options.fallbackScore - Unused; kept for API compatibility.
    */
@@ -83,12 +86,37 @@ export class HUD {
     entries: LeaderboardEntry[],
     options?: { isMobile?: boolean; isInGame?: boolean; fallbackScore?: number },
   ): void {
-    // Always use full LIVE leaderboard — same on desktop and mobile for consistency
-    const rowsToRender = entries;
+    const compactMobileGameplay = !!(options?.isMobile && options?.isInGame);
+
+    let rowsToRender: Array<{ entry: LeaderboardEntry; rank: number }>;
+
+    if (compactMobileGameplay) {
+      // Mobile: derive 3-row slice — me + 2 below when rank 1, else above + me + below
+      const meIndex = entries.findIndex((e) => e.id === this.playerId);
+      if (meIndex >= 0) {
+        let indices: number[];
+        if (meIndex === 0) {
+          // Rank 1: me + 2 below
+          indices = [0, 1, 2].filter((i) => i < entries.length);
+        } else if (meIndex === entries.length - 1) {
+          // Last: 2 above + me
+          indices = [meIndex - 2, meIndex - 1, meIndex].filter((i) => i >= 0);
+        } else {
+          // Middle: above + me + below
+          indices = [meIndex - 1, meIndex, meIndex + 1];
+        }
+        rowsToRender = indices.map((i) => ({ entry: entries[i], rank: i + 1 }));
+      } else {
+        // Player not in leaderboard (e.g. low score) — show top 3 as fallback
+        rowsToRender = entries.slice(0, 3).map((e, i) => ({ entry: e, rank: i + 1 }));
+      }
+    } else {
+      // Desktop (or game-over): full list
+      rowsToRender = entries.map((e, i) => ({ entry: e, rank: i + 1 }));
+    }
 
     this.leaderboardList.innerHTML = '';
-    rowsToRender.forEach((entry, i) => {
-      const rank = i + 1;
+    rowsToRender.forEach(({ entry, rank }) => {
       const li = document.createElement('li');
       if (entry.id === this.playerId) li.classList.add('me');
       li.innerHTML = `
@@ -132,13 +160,14 @@ export class HUD {
     multipliedScore: number,
     playerName: string,
     topScores: { name: string; score: number }[],
+    serverScores?: { name: string; score: number }[],
   ): void {
     this.deathPanelTitle.textContent = 'GAME OVER';
     this.deathMsg.style.display = '';
     this.deathMsg.textContent = killerName === 'Session ended'
       ? `Session ended • You hit x${multiplier.toFixed(1)}!`
       : `Eaten by ${this.escapeHtml(killerName)} • You hit x${multiplier.toFixed(1)}!`;
-    this.populateTopScores(multipliedScore, playerName);
+    this.populateTopScores(multipliedScore, playerName, serverScores);
     this.deathPlayBtn.textContent = 'START NEW GAME';
     this.deathPlayBtn.style.display = '';
     this.deathOverlay.classList.add('active');
@@ -165,8 +194,19 @@ export class HUD {
     this.deathOverlay.classList.remove('active');
   }
 
-  private populateTopScores(finalScore: number, playerName: string): void {
-    const todayScores = getTopScoresTodayWithFallback(10);
+  private populateTopScores(
+    finalScore: number,
+    playerName: string,
+    serverScores?: { name: string; score: number }[],
+  ): void {
+    const todayScores =
+      serverScores != null
+        ? mergeTop10(
+            serverScores.map((e) => ({ ...e, timestamp: 0 })),
+            getDailyBotTopScores(10),
+            10,
+          )
+        : getTopScoresTodayWithFallback(10);
     this.lastPopulateScores = todayScores.map((e) => ({ name: e.name, score: e.score }));
     this.lastPopulateFinalScore = finalScore;
     this.lastPopulatePlayerName = playerName;

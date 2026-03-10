@@ -16,7 +16,7 @@
 
 import { mountAnalytics } from './integrations/analytics.js';
 import { createGameState } from './core/gameState.js';
-import { runMultiplierFlow } from './core/gameOver.js';
+import { runMultiplierFlow, type GameOverReadyParams } from './core/gameOver.js';
 import type { GameOverDeps } from './core/gameOver.js';
 import { SceneManager } from './scene/SceneManager.js';
 import { MergeAnimManager } from './scene/MergeAnimManager.js';
@@ -59,8 +59,42 @@ const multiplierOverlay = new MultiplierOverlay();
 const sessionTimeline = new SessionTimeline();
 const deathFadeOverlay = new DeathFadeOverlay();
 
+// Pending game-over overlay: waiting for TopScoresResponse from server
+let pendingGameOverShow: GameOverReadyParams | null = null;
+let pendingGameOverTimeout: ReturnType<typeof setTimeout> | null = null;
+const TOP_SCORES_REQUEST_TIMEOUT_MS = 2000;
+
+function showGameOverWithFallbackScores(): void {
+  if (!pendingGameOverShow) return;
+  const p = pendingGameOverShow;
+  pendingGameOverShow = null;
+  if (pendingGameOverTimeout) {
+    clearTimeout(pendingGameOverTimeout);
+    pendingGameOverTimeout = null;
+  }
+  hud.showDeathWithMultiplier(
+    p.killerName,
+    p.multiplier,
+    p.baseScore,
+    p.multipliedScore,
+    p.playerName,
+    state.deathTopScores,
+    undefined, // use localStorage fallback
+  );
+}
+
 // Shared deps for the game-over multiplier flow
-const gameOverDeps: GameOverDeps = { state, socket, multiplierOverlay, hud, deathFadeOverlay };
+const gameOverDeps: GameOverDeps = {
+  state,
+  socket,
+  multiplierOverlay,
+  hud,
+  deathFadeOverlay,
+  onGameOverReadyToShow: (params) => {
+    pendingGameOverShow = params;
+    pendingGameOverTimeout = setTimeout(showGameOverWithFallbackScores, TOP_SCORES_REQUEST_TIMEOUT_MS);
+  },
+};
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
@@ -249,6 +283,25 @@ socket.onLeaderboard = (msg) => {
   } else if (import.meta.env?.DEV) {
     console.log(`[Leaderboard] liveLeaderboard updated rows=${state.liveLeaderboard.length}`);
   }
+};
+
+socket.onTopScoresResponse = (msg) => {
+  if (!pendingGameOverShow) return;
+  const p = pendingGameOverShow;
+  pendingGameOverShow = null;
+  if (pendingGameOverTimeout) {
+    clearTimeout(pendingGameOverTimeout);
+    pendingGameOverTimeout = null;
+  }
+  hud.showDeathWithMultiplier(
+    p.killerName,
+    p.multiplier,
+    p.baseScore,
+    p.multipliedScore,
+    p.playerName,
+    state.deathTopScores,
+    msg.scores,
+  );
 };
 
 socket.onDeath = (msg) => {

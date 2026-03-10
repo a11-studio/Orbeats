@@ -7,6 +7,7 @@ export enum ClientMsgType {
   Split = 'split',
   NewGame = 'new_game_request',
   GameOver = 'game_over',
+  TopScoresRequest = 'top_scores_request',
 }
 
 export enum ServerMsgType {
@@ -20,6 +21,7 @@ export enum ServerMsgType {
   PelletSync = 'pellet_sync',
   NewGameStarted = 'new_game_started',
   RoomSessionEnded = 'room_session_ended',
+  TopScoresResponse = 'top_scores_response',
 }
 
 // ── Client → Server messages ─────────────────────────
@@ -50,7 +52,12 @@ export interface GameOverMsg {
   sessionId: number;
 }
 
-export type ClientMsg = JoinMsg | InputMsg | SplitMsg | NewGameMsg | GameOverMsg;
+/** Client requests Top Scores Today (server-stored, shared). */
+export interface TopScoresRequestMsg {
+  type: ClientMsgType.TopScoresRequest;
+}
+
+export type ClientMsg = JoinMsg | InputMsg | SplitMsg | NewGameMsg | GameOverMsg | TopScoresRequestMsg;
 
 // ── Server → Client messages ─────────────────────────
 export interface WelcomeMsg {
@@ -124,6 +131,12 @@ export interface RoomSessionEndedMsg {
   sessionEndsAt: number;
 }
 
+/** Server response to TopScoresRequest: shared Top Scores Today. */
+export interface TopScoresResponseMsg {
+  type: ServerMsgType.TopScoresResponse;
+  scores: { name: string; score: number }[];
+}
+
 export type ServerMsg =
   | WelcomeMsg
   | SnapshotMsg
@@ -134,4 +147,5 @@ export type ServerMsg =
   | PelletSpawnedMsg
   | PelletSyncMsg
   | NewGameStartedMsg
-  | RoomSessionEndedMsg;
+  | RoomSessionEndedMsg
+  | TopScoresResponseMsg;

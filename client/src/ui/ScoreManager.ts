@@ -65,7 +65,10 @@ function getTopScoresToday(): TopScoreEntry[] {
   }
 }
 
-/** Merge multiple scores into today's leaderboard. Keeps highest score per name. */
+/** Minimum score to persist (matches server MIN_SCORE). */
+const MIN_SCORE = 1000;
+
+/** Merge multiple scores into today's leaderboard. Keeps highest score per name. Only stores scores >= MIN_SCORE. */
 export function addScoresToTopScoresToday(entries: { name: string; score: number }[]): void {
   const current = getTopScoresToday();
   const byName = new Map<string, TopScoreEntry>();
@@ -75,7 +78,7 @@ export function addScoresToTopScoresToday(entries: { name: string; score: number
   const now = Date.now();
   for (const { name, score } of entries) {
     const s = Math.floor(score);
-    if (s <= 0) continue;
+    if (s < MIN_SCORE) continue;
     const existing = byName.get(name);
     if (!existing || s > existing.score) {
       byName.set(name, { name, score: s, timestamp: existing?.timestamp ?? now });
