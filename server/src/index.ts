@@ -100,9 +100,10 @@ wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
           const tPellets = Date.now();
           gameLoop.sendInitialLeaderboard(ws);
           const tLeaderboard = Date.now();
+          const lbEntries = gameLoop.world.getLeaderboard().slice(0, 5).map((e) => e.name);
 
           console.log(
-            `[WS] Player joined: ${name} (${playerId}) | pellets=${pelletCount} conn→join=${dtConnToJoin}ms welcome→pellets=${tPellets - tWelcome}ms pellets→lb=${tLeaderboard - tPellets}ms`,
+            `[WS] Player joined: ${name} (${playerId}) sessionId=${gameLoop.getSessionTiming().sessionId} clients=${gameLoop.getClientCount()} lbTop5=[${lbEntries.join(', ')}] pellets=${pelletCount}`,
           );
           break;
         }

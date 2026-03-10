@@ -70,32 +70,25 @@ export class HUD {
 
   /**
    * In-game leaderboard overlay (visible during gameplay). NOT the Game Over screen.
-   * Game Over UI (death-overlay, death-highscore-list) is separate and unchanged.
+   * Game Over UI (death-overlay, death-highscore-list) uses "Top Scores Today" (persisted).
    *
-   * @param options.isMobile - When true and isInGame, render only my row (same style as desktop).
+   * LIVE leaderboard: same data on desktop and mobile. Both use the full server-sent list.
+   * Layout can differ (e.g. mobile scroll) but data source is identical.
+   *
+   * @param options.isMobile - For future layout tweaks (e.g. max-height). Data is never filtered.
    * @param options.isInGame - True during active gameplay (PLAYING). False on game over / other screens.
-   * @param options.fallbackScore - When compact and player not in entries yet, show this score.
+   * @param options.fallbackScore - Unused; kept for API compatibility.
    */
   updateLeaderboard(
     entries: LeaderboardEntry[],
     options?: { isMobile?: boolean; isInGame?: boolean; fallbackScore?: number },
   ): void {
-    const compactMobileGameplay = !!(options?.isMobile && options?.isInGame);
-    const rowsToRender = compactMobileGameplay
-      ? (() => {
-          const meIndex = entries.findIndex((e) => e.id === this.playerId);
-          if (meIndex >= 0) return [entries[meIndex]];
-          return options?.fallbackScore != null
-            ? [{ id: this.playerId, name: 'You', score: options.fallbackScore } as LeaderboardEntry]
-            : [];
-        })()
-      : entries;
+    // Always use full LIVE leaderboard — same on desktop and mobile for consistency
+    const rowsToRender = entries;
 
     this.leaderboardList.innerHTML = '';
     rowsToRender.forEach((entry, i) => {
-      const rank = compactMobileGameplay
-        ? entries.findIndex((e) => e.id === this.playerId) + 1 || '-'
-        : i + 1;
+      const rank = i + 1;
       const li = document.createElement('li');
       if (entry.id === this.playerId) li.classList.add('me');
       li.innerHTML = `

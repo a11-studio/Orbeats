@@ -218,7 +218,7 @@ socket.onWelcome = (msg) => {
   sessionTimeline.setVisible(true);
   const serverVer = (msg as { version?: string }).version;
   console.log(
-    `[Game] Welcome received playerId=${state.playerId} arena=${msg.arena} serverVersion=${serverVer ?? '?'} clientVersion=${APP_VERSION}`,
+    `[Game] Welcome received playerId=${state.playerId} sessionId=${state.sessionId} arena=${msg.arena} serverVersion=${serverVer ?? '?'} clientVersion=${APP_VERSION} isMobile=${isMobile()}`,
   );
   if (serverVer && serverVer !== APP_VERSION) {
     console.warn(`[Game] Version mismatch: client=${APP_VERSION} server=${serverVer}`);
@@ -237,9 +237,16 @@ socket.onSnapshot = (msg) => {
   if (state.gamePhase === 'GAME_OVER' || state.gamePhase === 'MULTIPLIER') return;
   interpolation.pushSnapshot(msg);
 };
+const DEBUG_LEADERBOARD =
+  typeof location !== 'undefined' && new URLSearchParams(location.search).get('debug_leaderboard') === '1';
+
 socket.onLeaderboard = (msg) => {
   state.liveLeaderboard = msg.leaderboard;
-  if (import.meta.env?.DEV) {
+  if (DEBUG_LEADERBOARD) {
+    console.log(
+      `[Leaderboard DEBUG] source=LIVE playerId=${state.playerId} sessionId=${state.sessionId} isMobile=${isMobile()} rows=${msg.leaderboard.length} entries=${JSON.stringify(msg.leaderboard.map((e) => ({ id: e.id, name: e.name, score: Math.floor(e.score) })))}`,
+    );
+  } else if (import.meta.env?.DEV) {
     console.log(`[Leaderboard] liveLeaderboard updated rows=${state.liveLeaderboard.length}`);
   }
 };

@@ -126,6 +126,10 @@ export class GameLoop {
     return { sessionEndsAt: this.sessionEndsAt, sessionId: this.sessionId };
   }
 
+  getClientCount(): number {
+    return this.clients.size;
+  }
+
   unregisterClient(id: string): void {
     this.clients.delete(id);
     this.clientSeqs.delete(id);

@@ -435,7 +435,7 @@ export class World {
         score: e.mass + (massBonus.get(e.id) ?? 0),
       }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+      .slice(0, 15);
   }
 
   /**

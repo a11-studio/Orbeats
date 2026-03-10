@@ -1,7 +1,7 @@
 /**
  * Resolves WebSocket URL for the game server.
  * - Uses VITE_WS_URL when set (production WSS).
- * - Localhost/dev: defaults to ws://localhost:3001.
+ * - Localhost/dev: uses Vite proxy (/ws → ws://localhost:3001) for same-origin connection.
  * - Production without config: returns null (avoids Mixed Content).
  */
 export function getWsUrl(): string | null {
@@ -14,7 +14,11 @@ export function getWsUrl(): string | null {
       location.hostname === '127.0.0.1' ||
       location.hostname.endsWith('.local'));
 
-  if (isLocal) return 'ws://localhost:3001';
+  if (isLocal) {
+    // Use Vite proxy: same origin, avoids direct ws://localhost:3001 issues
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${location.host}/ws`;
+  }
 
   return null;
 }
