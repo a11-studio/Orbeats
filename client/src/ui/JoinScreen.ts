@@ -34,4 +34,6 @@ export function setupJoinScreen(callbacks: JoinScreenCallbacks): void {
   nameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleJoin();
   });
+
+  nameInput.focus();
 }

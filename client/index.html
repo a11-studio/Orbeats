@@ -64,20 +64,45 @@
 
     #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-    /* ── Join Screen ──────────────────────────────── */
+    /* ── Join Screen (modal overlay, session screenshot as background) ──────────────────────────────── */
     #join-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(rgba(15,12,41,0.7), rgba(15,12,41,0.8));
       z-index: 100;
       font-family: 'Mona Sans', sans-serif;
     }
+    .join-bg {
+      position: absolute; inset: 0; z-index: 0; overflow: hidden;
+    }
+    .join-bg img {
+      width: 100%; height: 100%; object-fit: cover;
+      opacity: 0; transition: opacity 0.6s ease-out;
+    }
+    .join-bg.loaded img { opacity: 1; }
+    .join-overlay {
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(rgba(15,12,41,0.5), rgba(15,12,41,0.65));
+      pointer-events: none;
+    }
+    #join-screen.hidden { display: none; }
+    .join-modal-panel {
+      position: relative; z-index: 2;
+      background: rgba(20,20,48,0.95);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      min-width: 320px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.12);
+      display: flex; flex-direction: column; align-items: center;
+    }
     #join-screen .logo {
-      height: 64px; width: auto; margin-bottom: 32px;
-      filter: drop-shadow(0 0 30px rgba(255,100,100,0.5));
+      height: 56px; width: auto; margin-bottom: 28px;
+      filter: drop-shadow(0 0 24px rgba(255,100,100,0.5));
     }
     #join-screen input {
-      width: 280px; padding: 14px 20px; font-size: 18px;
+      width: 260px; padding: 14px 20px; font-size: 18px;
       border: 2px solid rgba(255,255,255,0.2); border-radius: 30px;
       background: rgba(255,255,255,0.08); color: #fff;
       outline: none; text-align: center;
@@ -86,7 +111,7 @@
     #join-screen input::placeholder { color: rgba(255,255,255,0.4); }
     #join-screen input:focus { border-color: rgba(255,100,100,0.6); }
     #join-screen button {
-      width: 280px; padding: 14px; font-size: 20px; font-weight: bold;
+      width: 260px; padding: 14px; font-size: 20px; font-weight: bold;
       font-variation-settings: "wdth" 125;
       border: none; border-radius: 30px; cursor: pointer;
       background: linear-gradient(135deg, #ff4444, #ff6b35);
@@ -95,8 +120,17 @@
       box-shadow: 0 4px 20px rgba(255,68,68,0.4);
     }
     #join-screen button:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
+    #join-screen button:disabled:hover { transform: none; }
+    #join-screen .join-spinner {
+      display: inline-block; width: 22px; height: 22px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: join-spin 0.7s linear infinite;
+    }
+    @keyframes join-spin { to { transform: rotate(360deg); } }
     .join-error {
-      margin-top: 16px; max-width: 320px; font-size: 14px; color: rgba(255,200,100,0.95);
+      margin-top: 16px; max-width: 280px; font-size: 14px; color: rgba(255,200,100,0.95);
       text-align: center; line-height: 1.5;
     }
 
@@ -310,12 +344,18 @@
   </style>
 </head>
 <body>
-  <!-- Join Screen -->
+  <!-- Join Screen (modal overlay, session screenshot as background with fade-in) -->
   <div id="join-screen" data-ui>
-    <img src="/logo.svg" alt="Orbeats" class="logo" />
-    <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
-    <button id="join-btn" data-ui>PLAY</button>
-    <p id="join-error" class="join-error" style="display:none;"></p>
+    <div class="join-bg" id="join-bg">
+      <img src="/join-bg.png" alt="" loading="lazy" decoding="async" onload="this.parentElement.classList.add('loaded')" />
+    </div>
+    <div class="join-overlay"></div>
+    <div class="join-modal-panel">
+      <img src="/logo.svg" alt="Orbeats" class="logo" />
+      <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
+      <button id="join-btn" data-ui>PLAY</button>
+      <p id="join-error" class="join-error" style="display:none;"></p>
+    </div>
   </div>
 
   <!-- HUD -->

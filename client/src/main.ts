@@ -207,21 +207,20 @@ setupJoinScreen({
     const wsUrl = normalizeWsUrl(rawUrl);
     markClick();
 
-    joinBtn.textContent = 'Connecting...';
+    joinBtn.innerHTML = '<span class="join-spinner"></span>';
     joinBtn.setAttribute('disabled', 'true');
 
     try {
       await socket.connect(wsUrl);
       socket.sendJoin(state.playerName);
-      joinBtn.textContent = 'Loading...';
       // Join screen stays visible until PelletSync arrives (gate gameplay on initial data)
       // Fallback: show game after 8s if PelletSync never arrives (avoids stuck state)
       setTimeout(() => {
-        if (state.playerId && joinScreen.style.display !== 'none') {
+        if (state.playerId && !joinScreen.classList.contains('hidden')) {
           console.warn('[Game] PelletSync timeout — showing game without pellets');
-          joinBtn.textContent = 'PLAY';
+          joinBtn.innerHTML = 'PLAY';
           joinBtn.removeAttribute('disabled');
-          joinScreen.style.display = 'none';
+          joinScreen.classList.add('hidden');
           hud.show();
           markGameplayReady();
         }
@@ -229,7 +228,7 @@ setupJoinScreen({
     } catch (e) {
       console.error('Failed to connect:', e);
       showJoinError('Could not connect to server. Make sure the server is running.');
-      joinBtn.textContent = 'PLAY';
+      joinBtn.innerHTML = 'PLAY';
       joinBtn.removeAttribute('disabled');
     }
   },
@@ -239,6 +238,10 @@ setupJoinScreen({
     if (rawUrl) socket.connect(normalizeWsUrl(rawUrl));
   },
 });
+
+// Preconnect on load so session starts loading while user enters name (arena visible in background)
+const initialWsUrl = getWsUrl();
+if (initialWsUrl) socket.connect(normalizeWsUrl(initialWsUrl));
 
 // ── Socket handlers ──────────────────────────────────
 socket.onWsOpen = () => markWsOpen();
@@ -258,10 +261,10 @@ socket.onWelcome = (msg) => {
     console.warn(`[Game] Version mismatch: client=${APP_VERSION} server=${serverVer}`);
   }
   // If PelletSync already arrived (unlikely), show game now
-  if (pelletStore.size > 0 && joinScreen.style.display !== 'none') {
-    joinBtn.textContent = 'PLAY';
+  if (pelletStore.size > 0 && !joinScreen.classList.contains('hidden')) {
+    joinBtn.innerHTML = 'PLAY';
     joinBtn.removeAttribute('disabled');
-    joinScreen.style.display = 'none';
+    joinScreen.classList.add('hidden');
     hud.show();
     markGameplayReady();
   }
@@ -447,10 +450,10 @@ socket.onPelletSync = (msg) => {
   const t = Date.now();
   console.log(`[Game] PelletSync received pellets=${msg.pellets.length} t=${t}`);
   // Gate gameplay: hide join screen only after initial pellet sync (ensures pellets visible on start)
-  if (state.playerId && joinScreen.style.display !== 'none') {
-    joinBtn.textContent = 'PLAY';
+  if (state.playerId && !joinScreen.classList.contains('hidden')) {
+    joinBtn.innerHTML = 'PLAY';
     joinBtn.removeAttribute('disabled');
-    joinScreen.style.display = 'none';
+    joinScreen.classList.add('hidden');
     hud.show();
     markGameplayReady();
   }
