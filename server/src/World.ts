@@ -74,14 +74,50 @@ export class World {
     return this.players.get(id);
   }
 
+  /** Total score (mass + split cells) for a bot — used to pick lowest when removing */
+  private getBotScore(botId: string): number {
+    const bot = this.bots.get(botId);
+    if (!bot) return Infinity;
+    let total = bot.mass;
+    for (const cell of this.splitCells.values()) {
+      if (cell.parentId === botId && cell.alive) total += cell.mass;
+    }
+    return total;
+  }
+
+  private findLowestScoreBot(): string | undefined {
+    let lowestId: string | undefined;
+    let lowestScore = Infinity;
+    for (const id of this.bots.keys()) {
+      const score = this.getBotScore(id);
+      if (score < lowestScore) {
+        lowestScore = score;
+        lowestId = id;
+      }
+    }
+    return lowestId;
+  }
+
+  private removeBot(id: string): void {
+    this.bots.delete(id);
+    this.respawnQueue = this.respawnQueue.filter((r) => r.player.id !== id);
+    for (const [cellId, cell] of this.splitCells) {
+      if (cell.parentId === id) {
+        this.splitCells.delete(cellId);
+      }
+    }
+  }
+
   updateBots(): void {
     const totalPlayers = this.players.size;
     const neededBots = Math.max(0, MIN_BOT_COUNT - totalPlayers);
 
     while (this.bots.size > neededBots) {
-      const firstKey = this.bots.keys().next().value;
-      if (firstKey !== undefined) {
-        this.bots.delete(firstKey);
+      const toRemove = this.findLowestScoreBot();
+      if (toRemove !== undefined) {
+        this.removeBot(toRemove);
+      } else {
+        break;
       }
     }
 

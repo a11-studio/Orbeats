@@ -33,6 +33,9 @@ export const SPLIT_MERGE_DELAY = 8000; // ms before halves CAN merge (overlap re
 export const SPLIT_COOLDOWN = 500; // ms between split actions (anti-spam)
 export const SPLIT_IMPULSE = 100; // initial launch speed of the ejected half
 export const SPLIT_SPEED_BONUS = 1.08; // split cells are 8% faster (smaller = more mobile)
+/** Small blobs (mass < 100) get up to 10% speed bonus — makes split cells more viable */
+export const SMALL_BLOB_SPEED_BONUS = 1.1;
+export const SMALL_BLOB_MASS_THRESHOLD = 100;
 export const MAX_PLAYER_CELLS = 8; // max blobs per player (1 main + 7 splits)
 export const SIBLING_REPULSION = 2.0; // push-apart strength between same-player blobs
 export const MERGE_OVERLAP_GRACE = 5000; // ms after merge cooldown → force-merge regardless
@@ -53,15 +56,23 @@ export const MIN_BOT_COUNT = 8; // always at least 8 AI opponents
 // ── Derived helpers ───────────────────────────────────
 const RADIUS_BASE = 2.0;
 const MAX_RADIUS = 55;
+/** Exponent > 0.5 = bigger blobs grow faster visually (more noticeable size difference) */
+const RADIUS_MASS_EXP = 0.62;
 
 export function massToRadius(mass: number): number {
-  const r = RADIUS_BASE + Math.sqrt(mass) * 0.18;
+  const r = RADIUS_BASE + Math.pow(mass, RADIUS_MASS_EXP) * 0.105;
   return Math.min(r, MAX_RADIUS);
 }
 
 export function massToSpeed(mass: number): number {
   const radius = massToRadius(mass);
-  return BASE_SPEED / (1 + radius * 0.006);
+  let speed = BASE_SPEED / (1 + radius * 0.006);
+  if (mass < SMALL_BLOB_MASS_THRESHOLD) {
+    const t = mass / SMALL_BLOB_MASS_THRESHOLD;
+    const bonus = 1 + (SMALL_BLOB_SPEED_BONUS - 1) * (1 - t);
+    speed *= bonus;
+  }
+  return speed;
 }
 
 /** Mass decay per second when above threshold. E.g. 2000 mass → 6 pts/s, 5000 → 15 pts/s */
