@@ -1,5 +1,6 @@
 import type { EntityState, LeaderboardEntry } from '@orbeats/shared';
 import type { SnapshotMsg } from '@orbeats/shared';
+import { TELEPORT_THRESHOLD } from '@orbeats/shared';
 
 interface BufferedSnapshot {
   time: number;
@@ -85,6 +86,13 @@ export class Interpolation {
     this.leaderboard = leaderboard;
   }
 
+  private static getDebugRespawn(): boolean {
+    return (
+      typeof location !== 'undefined' &&
+      new URLSearchParams(location.search).get('debug_respawn') === '1'
+    );
+  }
+
   /** Build a Map<id, EntityState> for O(1) lookups during interpolation. */
   private static buildEntityMap(entities: EntityState[]): Map<string, EntityState> {
     const map = new Map<string, EntityState>();
@@ -97,16 +105,34 @@ export class Interpolation {
   /**
    * Interpolate between two entity arrays using a pre-built Map for the
    * "previous" snapshot. O(n) instead of O(n²).
+   * Respawn/teleport: snap to next position instead of lerping (prevents streak).
    */
   private static lerpEntities(
     prevMap: Map<string, EntityState>,
     next: EntityState[],
     t: number,
     clampMass: boolean,
+    debugRespawn?: boolean,
   ): EntityState[] {
     return next.map((nextE) => {
       const prevE = prevMap.get(nextE.id);
       if (!prevE) return nextE; // new entity — no prev data to lerp from
+
+      // Respawn: entity was dead (or just became alive) — snap to avoid streak
+      const prevDeadNextAlive = !prevE.alive && nextE.alive;
+      const dist = Math.sqrt(
+        (nextE.x - prevE.x) ** 2 + (nextE.z - prevE.z) ** 2,
+      );
+      const isTeleport = dist > TELEPORT_THRESHOLD;
+
+      if (prevDeadNextAlive || isTeleport) {
+        if (debugRespawn) {
+          console.log(
+            `[Respawn] snap entity=${nextE.id} from (${prevE.x.toFixed(1)},${prevE.z.toFixed(1)}) to (${nextE.x.toFixed(1)},${nextE.z.toFixed(1)})${prevDeadNextAlive ? ' respawn' : ' teleport'}`,
+          );
+        }
+        return nextE;
+      }
 
       const mt = clampMass ? Math.min(t, 1) : t;
       return {
@@ -149,7 +175,13 @@ export class Interpolation {
       const t = range > 0 ? Math.min((renderTime - prev.time) / range, 1.5) : 1;
 
       const prevMap = Interpolation.buildEntityMap(prev.entities);
-      this.entities = Interpolation.lerpEntities(prevMap, next.entities, t, true);
+      this.entities = Interpolation.lerpEntities(
+        prevMap,
+        next.entities,
+        t,
+        true,
+        Interpolation.getDebugRespawn(),
+      );
       return;
     }
 
@@ -159,6 +191,12 @@ export class Interpolation {
     const alpha = Math.max(0, Math.min(1, t));
 
     const prevMap = Interpolation.buildEntityMap(prev.entities);
-    this.entities = Interpolation.lerpEntities(prevMap, next.entities, alpha, false);
+    this.entities = Interpolation.lerpEntities(
+      prevMap,
+      next.entities,
+      alpha,
+      false,
+      Interpolation.getDebugRespawn(),
+    );
   }
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { massToRadius } from '@orbeats/shared';
+import { massToRadius, TELEPORT_THRESHOLD } from '@orbeats/shared';
 
 const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
 
@@ -33,14 +33,23 @@ export class PlayerMesh {
       this.mesh.scale.setScalar(r);
       this._initialized = true;
     } else {
-      const posAlpha = 1 - Math.exp(-POS_LERP_K * dt);
-      this.mesh.position.x += (x - this.mesh.position.x) * posAlpha;
-      this.mesh.position.y += (r - this.mesh.position.y) * posAlpha;
-      this.mesh.position.z += (z - this.mesh.position.z) * posAlpha;
+      const dx = x - this.mesh.position.x;
+      const dz = z - this.mesh.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > TELEPORT_THRESHOLD) {
+        // Respawn/teleport: snap to avoid streak
+        this.mesh.position.set(x, r, z);
+        this.mesh.scale.setScalar(r);
+      } else {
+        const posAlpha = 1 - Math.exp(-POS_LERP_K * dt);
+        this.mesh.position.x += dx * posAlpha;
+        this.mesh.position.y += (r - this.mesh.position.y) * posAlpha;
+        this.mesh.position.z += dz * posAlpha;
 
-      const scaleAlpha = 1 - Math.exp(-SCALE_LERP_K * dt);
-      const curScale = this.mesh.scale.x;
-      this.mesh.scale.setScalar(curScale + (r - curScale) * scaleAlpha);
+        const scaleAlpha = 1 - Math.exp(-SCALE_LERP_K * dt);
+        const curScale = this.mesh.scale.x;
+        this.mesh.scale.setScalar(curScale + (r - curScale) * scaleAlpha);
+      }
     }
   }
 

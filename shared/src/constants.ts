@@ -21,6 +21,8 @@ export const EAT_RATIO = 1.15; // must be 15% larger to eat
 
 // ── Respawn ────────────────────────────────────────────
 export const RESPAWN_DELAY = 2000; // ms
+/** Client: position jump above this = teleport/respawn, snap instead of interpolate */
+export const TELEPORT_THRESHOLD = 120;
 
 // ── Session timer ─────────────────────────────────────
 export const SESSION_SECONDS = 180; // 3 minutes per session

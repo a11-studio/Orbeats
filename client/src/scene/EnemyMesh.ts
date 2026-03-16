@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { massToRadius } from '@orbeats/shared';
+import { massToRadius, TELEPORT_THRESHOLD } from '@orbeats/shared';
 import { createAngryFaceTexture } from '../utils/FaceTexture.js';
 
 const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
@@ -63,15 +63,24 @@ export class EnemyMesh {
       this.sphere.scale.setScalar(r);
       this._initialized = true;
     } else {
-      const posAlpha = 1 - Math.exp(-POS_LERP_K * dt);
-      this.group.position.x += (x - this.group.position.x) * posAlpha;
-      this.group.position.y += (r - this.group.position.y) * posAlpha;
-      this.group.position.z += (z - this.group.position.z) * posAlpha;
+      const dx = x - this.group.position.x;
+      const dz = z - this.group.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > TELEPORT_THRESHOLD) {
+        // Respawn/teleport: snap to avoid streak
+        this.group.position.set(x, r, z);
+        this.sphere.scale.setScalar(r);
+      } else {
+        const posAlpha = 1 - Math.exp(-POS_LERP_K * dt);
+        this.group.position.x += dx * posAlpha;
+        this.group.position.y += (r - this.group.position.y) * posAlpha;
+        this.group.position.z += dz * posAlpha;
 
-      const scaleAlpha = 1 - Math.exp(-SCALE_LERP_K * dt);
-      const curScale = this.sphere.scale.x;
-      const newScale = curScale + (r - curScale) * scaleAlpha;
-      this.sphere.scale.setScalar(newScale);
+        const scaleAlpha = 1 - Math.exp(-SCALE_LERP_K * dt);
+        const curScale = this.sphere.scale.x;
+        const newScale = curScale + (r - curScale) * scaleAlpha;
+        this.sphere.scale.setScalar(newScale);
+      }
     }
 
     // Face sprite tracks the visual scale
