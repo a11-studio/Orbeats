@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import fs from 'fs';
 
 export default defineConfig({
   resolve: {
@@ -17,4 +18,28 @@ export default defineConfig({
       },
     },
   },
+  plugins: [
+    {
+      name: 'rewrite-static-pages',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const routes: Record<string, string> = {
+            '/privacy': 'privacy.html',
+            '/terms': 'terms.html',
+            '/contact': 'contact.html',
+          };
+          const file = req.url ? routes[req.url.split('?')[0]] : null;
+          if (file) {
+            const filePath = path.join(__dirname, 'public', file);
+            if (fs.existsSync(filePath)) {
+              res.setHeader('Content-Type', 'text/html');
+              res.end(fs.readFileSync(filePath, 'utf-8'));
+              return;
+            }
+          }
+          next();
+        });
+      },
+    },
+  ],
 });

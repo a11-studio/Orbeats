@@ -49,7 +49,7 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2749421926036385" crossorigin="anonymous"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: manipulation; font-family: 'Mona Sans', sans-serif; font-variation-settings: "wdth" 100; }
+    html, body { width: 100%; min-height: 100%; overflow-x: hidden; overflow-y: auto; background: #1a1a2e; touch-action: manipulation; font-family: 'Mona Sans', sans-serif; font-variation-settings: "wdth" 100; }
     canvas { display: block; }
 
     /* ── Name tags (HTML overlay) ───────────────────── */
@@ -67,6 +67,15 @@
     }
 
     #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    /* ── Homepage intro + footer (below game, scroll to see) ───────────────────── */
+    .site-intro { padding: 32px 24px 24px; max-width: 640px; margin: 0 auto; color: rgba(255,255,255,0.85); font-size: 15px; line-height: 1.6; }
+    .site-intro h1 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 12px; }
+    .site-intro p { margin-bottom: 12px; }
+    .site-intro h2 { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.95); margin: 20px 0 8px; }
+    .site-intro ul { margin-left: 20px; margin-bottom: 12px; }
+    .site-footer { padding: 20px 24px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08); font-size: 13px; color: rgba(255,255,255,0.5); }
+    .site-footer a { color: rgba(255,255,255,0.7); text-decoration: none; margin: 0 12px; }
+    .site-footer a:hover { color: #ff6b35; }
 
     /* ── Join Screen (modal overlay, session screenshot as background) ──────────────────────────────── */
     #join-screen {
@@ -348,6 +357,7 @@
   </style>
 </head>
 <body>
+  <div id="game-viewport" style="min-height: 100vh; position: relative;">
   <!-- Join Screen (modal overlay, session screenshot as background with fade-in) -->
   <div id="join-screen" data-ui>
     <div class="join-bg" id="join-bg">
@@ -413,6 +423,27 @@
   </div>
 
   <div id="analytics-root"></div>
+  </div>
+
+  <section class="site-intro">
+    <h1>Orbeats</h1>
+    <p>Orbeats is a real-time multiplayer browser game where you control a blob and grow by devouring pellets and smaller players. Compete in 3-minute sessions and climb the leaderboard.</p>
+    <h2>How to play</h2>
+    <ul>
+      <li><strong>Move</strong> — your orb follows the mouse (or finger on mobile)</li>
+      <li><strong>Eat pellets</strong> — grow your mass. Special pellets add +10, rare diamonds +100</li>
+      <li><strong>Eat smaller players</strong> — you must be at least 15% larger to eat them</li>
+      <li><strong>Split</strong> — press Space (or double-tap on mobile) to split and gain speed</li>
+      <li><strong>Compete</strong> — top scores are saved. Play again to beat your best!</li>
+    </ul>
+  </section>
+
+  <footer class="site-footer">
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="/contact">Contact</a>
+  </footer>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -112,7 +112,8 @@ export class SceneManager {
     this.renderer.toneMappingExposure = 1.1;
 
     // ── 7. Append to DOM ────────────────────────────
-    document.body.appendChild(canvas);
+    const viewport = document.getElementById('game-viewport') ?? document.body;
+    viewport.appendChild(canvas);
 
     console.log('Renderer created successfully');
     console.log(
