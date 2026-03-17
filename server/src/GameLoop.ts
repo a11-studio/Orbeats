@@ -1,4 +1,4 @@
-import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS, SESSION_SECONDS } from '@orbeats/shared';
+import { SERVER_TICK_MS, BROADCAST_INTERVAL_MS, SESSION_SECONDS, BOUNTY_INTERVAL_MS } from '@orbeats/shared';
 import type { WebSocket } from 'ws';
 import { World } from './World.js';
 import {
@@ -11,6 +11,8 @@ import {
   buildPelletSync,
   buildNewGameStarted,
   buildRoomSessionEnded,
+  buildSetBounty,
+  buildBountyEarned,
   sendJSON,
 } from './network.js';
 
@@ -30,6 +32,11 @@ export class GameLoop {
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private broadcastInterval: ReturnType<typeof setInterval> | null = null;
   private leaderboardInterval: ReturnType<typeof setInterval> | null = null;
+
+  /** Tracks when each player joined (for bounty timing) */
+  private clientJoinedAt: Map<string, number> = new Map();
+  /** Last time a bounty was assigned for each player (repeats every BOUNTY_INTERVAL_MS) */
+  private lastBountyAt: Map<string, number> = new Map();
 
   start(): void {
     console.log(`[GameLoop] Starting: tick=${SERVER_TICK_MS}ms, broadcast=${BROADCAST_INTERVAL_MS.toFixed(0)}ms`);
@@ -52,6 +59,7 @@ export class GameLoop {
         this.sessionId++;
         console.log(`[SESSION-END] resetWorld begin`);
         this.world.resetWorld();
+        this.resetBountyTracking();
         if (this.world.hasPelletEvents()) this.world.flushPelletEvents();
         console.log(`[SESSION-END] resetWorld end`);
         const msg = buildRoomSessionEnded(this.sessionId, this.sessionEndsAt);
@@ -86,6 +94,10 @@ export class GameLoop {
       this.broadcastDeaths();
       this.broadcastRespawns();
 
+      // Bounty system: assign targets and notify bonuses
+      this.broadcastBounties(now);
+      this.broadcastBountyEarned();
+
       // Periodic full pellet sync as safety net
       if (this.tick % PELLET_FULL_SYNC_INTERVAL === 0) {
         this.broadcastPelletFullSync();
@@ -112,6 +124,7 @@ export class GameLoop {
   registerClient(id: string, ws: WebSocket): void {
     this.clients.set(id, ws);
     this.clientSeqs.set(id, 0);
+    this.clientJoinedAt.set(id, Date.now());
     if (this.sessionEndsAt <= 0) {
       // First joiner (or after room was empty): reset world so no stale bots/scores from server start
       console.log('[ROOM RESET] New session — resetting world for first joiner');
@@ -133,6 +146,9 @@ export class GameLoop {
   unregisterClient(id: string): void {
     this.clients.delete(id);
     this.clientSeqs.delete(id);
+    this.clientJoinedAt.delete(id);
+    this.lastBountyAt.delete(id);
+    this.world.clearBounty(id);
     if (this.clients.size === 0) {
       // Room empty: reset world so next joiner sees fresh state (no stale bots/scores)
       console.log('[ROOM RESET] Room empty — resetting world for next joiner');
@@ -225,6 +241,10 @@ export class GameLoop {
     }
     console.log('[GameLoop] Per-player new game — respawning', playerId);
 
+    // Reset bounty timer so the interval restarts from the new game
+    this.lastBountyAt.delete(playerId);
+    this.clientJoinedAt.set(playerId, Date.now());
+
     const ws = this.clients.get(playerId);
     if (ws) {
       sendJSON(ws, buildNewGameStarted());
@@ -276,5 +296,47 @@ export class GameLoop {
     console.log(
       `[PelletSync] periodic full sync pellets=${pellets.length} clients=${this.clients.size}`,
     );
+  }
+
+  /** Assign a new bounty target every BOUNTY_INTERVAL_MS (30 s). Only 1 active at a time. */
+  private broadcastBounties(now: number): void {
+    for (const [playerId, ws] of this.clients) {
+      const joinedAt = this.clientJoinedAt.get(playerId);
+      if (!joinedAt) continue;
+
+      const lastAt = this.lastBountyAt.get(playerId) ?? joinedAt;
+      if (now - lastAt < BOUNTY_INTERVAL_MS) continue;
+
+      const target = this.world.findBountyTarget(playerId);
+      // Update timestamp regardless — avoids re-firing every tick when no target exists
+      this.lastBountyAt.set(playerId, now);
+
+      if (!target) continue;
+
+      // Replace any existing bounty with the new target
+      this.world.assignBounty(playerId, target.id);
+      sendJSON(ws, buildSetBounty(target.id, target.name, target.score));
+      console.log(`[Bounty] player=${playerId} target=${target.name} (score=${Math.floor(target.score)})`);
+    }
+  }
+
+  /** Forward any earned bounty bonuses to the killer */
+  private broadcastBountyEarned(): void {
+    const events = this.world.flushBountyEarned();
+    for (const event of events) {
+      const ws = this.clients.get(event.killerId);
+      if (ws) {
+        sendJSON(ws, buildBountyEarned(event.targetName, event.bonusScore));
+      }
+    }
+  }
+
+  /** Reset bounty tracking for all players (called on session reset) */
+  private resetBountyTracking(): void {
+    const now = Date.now();
+    for (const id of this.clients.keys()) {
+      this.clientJoinedAt.set(id, now);
+    }
+    this.lastBountyAt.clear();
   }
 }

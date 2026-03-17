@@ -14,6 +14,8 @@ import {
   type NewGameStartedMsg,
   type RoomSessionEndedMsg,
   type TopScoresResponseMsg,
+  type SetBountyMsg,
+  type BountyEarnedMsg,
 } from '@orbeats/shared';
 
 export type SnapshotHandler = (msg: SnapshotMsg) => void;
@@ -27,6 +29,8 @@ export type PelletSpawnedHandler = (msg: PelletSpawnedMsg) => void;
 export type PelletSyncHandler = (msg: PelletSyncMsg) => void;
 export type NewGameStartedHandler = (msg: NewGameStartedMsg) => void;
 export type RoomSessionEndedHandler = (msg: RoomSessionEndedMsg) => void;
+export type SetBountyHandler = (msg: SetBountyMsg) => void;
+export type BountyEarnedHandler = (msg: BountyEarnedMsg) => void;
 
 export class GameSocket {
   private ws: WebSocket | null = null;
@@ -48,6 +52,8 @@ export class GameSocket {
   onNewGameStarted: NewGameStartedHandler | null = null;
   onRoomSessionEnded: RoomSessionEndedHandler | null = null;
   onTopScoresResponse: TopScoresResponseHandler | null = null;
+  onSetBounty: SetBountyHandler | null = null;
+  onBountyEarned: BountyEarnedHandler | null = null;
 
   get connected(): boolean {
     return this._connected;
@@ -120,6 +126,12 @@ export class GameSocket {
               break;
             case ServerMsgType.TopScoresResponse:
               this.onTopScoresResponse?.(msg);
+              break;
+            case ServerMsgType.SetBounty:
+              this.onSetBounty?.(msg);
+              break;
+            case ServerMsgType.BountyEarned:
+              this.onBountyEarned?.(msg);
               break;
           }
         } catch (e) {

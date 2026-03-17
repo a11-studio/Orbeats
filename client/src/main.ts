@@ -36,6 +36,8 @@ import { DeathFadeOverlay } from './ui/DeathFadeOverlay.js';
 import { SessionTimeline } from './ui/SessionTimeline.js';
 import { saveBestScoreIfHigher } from './ui/ScoreManager.js';
 import { setupJoinScreen } from './ui/JoinScreen.js';
+import { BountyToast } from './ui/BountyToast.js';
+import { BountyArrow } from './ui/BountyArrow.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
 import { markClick, markWsOpen, markWelcome, markGameplayReady } from './utils/startupTiming.js';
@@ -58,6 +60,8 @@ const hud = new HUD();
 const multiplierOverlay = new MultiplierOverlay();
 const sessionTimeline = new SessionTimeline();
 const deathFadeOverlay = new DeathFadeOverlay();
+const bountyToast = new BountyToast();
+const bountyArrow = new BountyArrow();
 
 // Pending game-over overlay: waiting for TopScoresResponse from server
 let pendingGameOverShow: GameOverReadyParams | null = null;
@@ -288,6 +292,18 @@ socket.onLeaderboard = (msg) => {
   }
 };
 
+socket.onSetBounty = (msg) => {
+  if (state.gamePhase !== 'PLAYING') return;
+  bountyToast.showTarget(msg.targetName, msg.targetScore);
+  bountyArrow.setTarget(msg.targetId);
+};
+
+socket.onBountyEarned = (msg) => {
+  bountyArrow.clearTarget();
+  if (state.gamePhase !== 'PLAYING') return;
+  bountyToast.showBonus(msg.targetName, msg.bonusScore);
+};
+
 socket.onTopScoresResponse = (msg) => {
   if (!pendingGameOverShow) return;
   const p = pendingGameOverShow;
@@ -308,6 +324,8 @@ socket.onTopScoresResponse = (msg) => {
 };
 
 socket.onDeath = (msg) => {
+  bountyArrow.clearTarget();
+  bountyToast.hide();
   if (state.sessionLocked) return;
   state.sessionLocked = true;
   state.gamePhase = 'MULTIPLIER';
@@ -353,6 +371,7 @@ socket.onRespawn = () => {
 
 socket.onNewGameStarted = () => {
   console.log('[Game] New game started — resetting client state (per-player respawn)');
+  bountyArrow.clearTarget();
 
   // Reset local state
   state.gamePhase = 'PLAYING';
@@ -535,6 +554,7 @@ function gameLoop(now: number): void {
       );
     }
     nameTags.endFrame();
+    bountyArrow.update(interpolation.entities, sceneManager.camera);
     sceneManager.render();
     return;
   }
@@ -752,7 +772,10 @@ function gameLoop(now: number): void {
     fallbackScore: state.playerScore,
   });
 
-  // ── 10. Render ─────────────────────────────────────
+  // ── 10. Bounty arrow ───────────────────────────────
+  bountyArrow.update(interpolation.entities, sceneManager.camera);
+
+  // ── 11. Render ─────────────────────────────────────
   sceneManager.render();
 }
 

@@ -8,6 +8,7 @@ import {
   MERGE_OVERLAP_GRACE,
   BASE_MASS,
   getMassDecayPerSecond,
+  BOUNTY_MASS_BONUS,
 } from '@orbeats/shared';
 import type { LeaderboardEntry } from '@orbeats/shared';
 import { Player } from './Player.js';
@@ -37,6 +38,12 @@ export interface DeathEvent {
   finalScore: number;
 }
 
+interface BountyEarnedEvent {
+  killerId: string;
+  targetName: string;
+  bonusScore: number;
+}
+
 export class World {
   players: Map<string, Player> = new Map();
   bots: Map<string, Bot> = new Map();
@@ -46,6 +53,9 @@ export class World {
   private respawnQueue: { player: Player; time: number }[] = [];
   private pendingDeaths: DeathEvent[] = [];
   private pendingRespawns: string[] = [];
+  private pendingBountyEarned: BountyEarnedEvent[] = [];
+  /** killerId → targetId */
+  private playerBounties: Map<string, string> = new Map();
   private sessionHighScores: { name: string; score: number }[] = [];
   private tickCount: number = 0;
 
@@ -445,6 +455,17 @@ export class World {
         });
       }
 
+      // Bounty: if killer has a bounty on this victim, apply +20% bonus mass
+      if (this.players.has(killerId) && this.playerBounties.get(killerId) === victim.id) {
+        const bonus = Math.ceil(victimTotalMass * BOUNTY_MASS_BONUS);
+        const killerMainPlayer = this.players.get(killerId);
+        if (killerMainPlayer) {
+          killerMainPlayer.addMass(bonus);
+        }
+        this.pendingBountyEarned.push({ killerId, targetName: victimPlayer.name, bonusScore: bonus });
+        this.playerBounties.delete(killerId);
+      }
+
       // Record high score for all entities
       this.recordHighScore(victimPlayer.name, victimTotalMass);
 
@@ -495,6 +516,7 @@ export class World {
 
     // 3. Reset only this player
     player.resetForNewGame();
+    this.playerBounties.delete(playerId);
     return true;
   }
 
@@ -526,6 +548,7 @@ export class World {
     this.respawnQueue = [];
     this.pendingDeaths = [];
     this.pendingRespawns = [];
+    this.clearAllBounties();
 
     // 3. Clear session high scores (prevents death overlay showing old-session scores)
     this.sessionHighScores = [];
@@ -555,6 +578,38 @@ export class World {
       top5: lbAfter,
     };
     console.log(`[ROOM RESET] before=${JSON.stringify(before)} after=${JSON.stringify(after)}`);
+  }
+
+  // ── Bounty system ────────────────────────────────────
+
+  assignBounty(playerId: string, targetId: string): void {
+    this.playerBounties.set(playerId, targetId);
+  }
+
+  clearBounty(playerId: string): void {
+    this.playerBounties.delete(playerId);
+  }
+
+  /** Find the entity (player or bot) with the closest score to playerId. Excludes self. */
+  findBountyTarget(playerId: string): { id: string; name: string; score: number } | null {
+    const lb = this.getLeaderboard();
+    const me = lb.find((e) => e.id === playerId);
+    if (!me) return null;
+    const others = lb.filter((e) => e.id !== playerId);
+    if (others.length === 0) return null;
+    others.sort((a, b) => Math.abs(a.score - me.score) - Math.abs(b.score - me.score));
+    return others[0];
+  }
+
+  flushBountyEarned(): BountyEarnedEvent[] {
+    const events = [...this.pendingBountyEarned];
+    this.pendingBountyEarned = [];
+    return events;
+  }
+
+  clearAllBounties(): void {
+    this.playerBounties.clear();
+    this.pendingBountyEarned = [];
   }
 
   // ── High scores ─────────────────────────────────────

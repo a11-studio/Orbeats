@@ -21,6 +21,12 @@ export const EAT_RATIO = 1.15; // must be 15% larger to eat
 
 // ── Respawn ────────────────────────────────────────────
 export const RESPAWN_DELAY = 2000; // ms
+
+// ── Bounty system ──────────────────────────────────────
+/** How often (ms) a new bounty target is assigned — first fires 30 s after joining */
+export const BOUNTY_INTERVAL_MS = 30_000;
+/** Extra mass bonus as fraction of victim's total mass (0.2 = +20%) */
+export const BOUNTY_MASS_BONUS = 0.2;
 /** Client: position jump above this = teleport/respawn, snap instead of interpolate */
 export const TELEPORT_THRESHOLD = 120;
 
@@ -56,11 +62,11 @@ export const MIN_BOT_COUNT = 8; // always at least 8 AI opponents
 // ── Derived helpers ───────────────────────────────────
 const RADIUS_BASE = 2.0;
 const MAX_RADIUS = 55;
-/** Exponent > 0.5 = bigger blobs grow faster visually (more noticeable size difference) */
-const RADIUS_MASS_EXP = 0.62;
+/** Exponent > 0.5 = bigger blobs grow faster visually, but capped to avoid screen-filling at high mass */
+const RADIUS_MASS_EXP = 0.54;
 
 export function massToRadius(mass: number): number {
-  const r = RADIUS_BASE + Math.pow(mass, RADIUS_MASS_EXP) * 0.105;
+  const r = RADIUS_BASE + Math.pow(mass, RADIUS_MASS_EXP) * 0.12;
   return Math.min(r, MAX_RADIUS);
 }
 

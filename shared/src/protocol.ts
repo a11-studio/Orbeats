@@ -22,6 +22,8 @@ export enum ServerMsgType {
   NewGameStarted = 'new_game_started',
   RoomSessionEnded = 'room_session_ended',
   TopScoresResponse = 'top_scores_response',
+  SetBounty = 'set_bounty',
+  BountyEarned = 'bounty_earned',
 }
 
 // ── Client → Server messages ─────────────────────────
@@ -137,6 +139,21 @@ export interface TopScoresResponseMsg {
   scores: { name: string; score: number }[];
 }
 
+/** Sent 60 s after joining — assigns a bounty target to hunt for a +20% bonus. */
+export interface SetBountyMsg {
+  type: ServerMsgType.SetBounty;
+  targetId: string;
+  targetName: string;
+  targetScore: number;
+}
+
+/** Sent to the killer when they successfully eat their bounty target. */
+export interface BountyEarnedMsg {
+  type: ServerMsgType.BountyEarned;
+  targetName: string;
+  bonusScore: number;
+}
+
 export type ServerMsg =
   | WelcomeMsg
   | SnapshotMsg
@@ -148,4 +165,6 @@ export type ServerMsg =
   | PelletSyncMsg
   | NewGameStartedMsg
   | RoomSessionEndedMsg
-  | TopScoresResponseMsg;
+  | TopScoresResponseMsg
+  | SetBountyMsg
+  | BountyEarnedMsg;

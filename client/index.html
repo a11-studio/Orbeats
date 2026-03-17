@@ -77,6 +77,63 @@
     .site-footer a { color: rgba(255,255,255,0.7); text-decoration: none; margin: 0 12px; }
     .site-footer a:hover { color: #ff6b35; }
 
+    /* ── Bounty arrow ─────────────────────────────────── */
+    #bounty-arrow {
+      position: fixed;
+      z-index: 490;
+      pointer-events: none;
+      display: none;
+      /* Pre-composited layer — avoids promotion jank on first frame */
+      will-change: transform;
+      /* Color is set dynamically by BountyArrow.ts to match the target's blob color */
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+      animation: bounty-arrow-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes bounty-arrow-pulse {
+      0%, 100% { opacity: 0.75; }
+      50%       { opacity: 1;    }
+    }
+
+    /* ── Bounty toast ──────────────────────────────────── */
+    #bounty-toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      z-index: 500;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-family: 'Mona Sans', sans-serif;
+      line-height: 1.5;
+      text-align: center;
+      pointer-events: none;
+      /* Pre-composited — will-change avoids promotion jank on first show */
+      will-change: opacity, transform;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      white-space: nowrap;
+    }
+    #bounty-toast.bounty-toast-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    /* Subtle coloured bottom border per toast type */
+    #bounty-toast::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+    }
+    #bounty-toast.bounty-toast-target::after { border-color: rgba(255, 180, 40, 0.35); }
+    #bounty-toast.bounty-toast-bonus::after  { border-color: rgba(80, 255, 130, 0.35); }
+
     /* ── Join Screen (modal overlay, session screenshot as background) ──────────────────────────────── */
     #join-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -398,6 +455,20 @@
         <button type="button" id="session-timeline-mobile-menu" data-ui title="End game">⋯</button>
       </div>
     </div>
+  </div>
+
+  <!-- Bounty toast — pre-rendered so backdrop-filter is already composited -->
+  <div id="bounty-toast" aria-live="polite"></div>
+
+  <!-- Bounty arrow — pre-rendered so will-change layer is already promoted -->
+  <div id="bounty-arrow">
+    <!--
+      Triangle pointing RIGHT (angle=0). JS rotates via transform: rotate(Xrad).
+      The shape is a right-pointing arrow chevron.
+    -->
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <polygon points="5,3 21,12 5,21" fill="rgba(255,255,255,0.9)" />
+    </svg>
   </div>
 
   <!-- Death / Game Over overlay -->

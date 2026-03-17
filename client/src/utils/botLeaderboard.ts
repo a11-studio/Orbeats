@@ -5,7 +5,7 @@
 
 import { hashStringToSeed, mulberry32 } from './seededRandom.js';
 
-const BOT_STORAGE_PREFIX = 'orbeats:botTop10:';
+const BOT_STORAGE_PREFIX = 'orbeats:botTop10v2:';
 
 const NAME_POOL = [
   'Alex', 'Blaze', 'Chip', 'Dax', 'Echo', 'Finn', 'Giga', 'Hex', 'Ivy', 'Jax',
@@ -55,10 +55,10 @@ function generateDailyBotTopScores(count: number): BotLeaderboardEntry[] {
     }
     usedNames.add(name);
 
-    let score = Math.floor(500 + Math.pow(rng(), 0.35) * 1500);
-    score = Math.max(500, Math.min(2000, score));
+    let score = Math.floor(1000 + Math.pow(rng(), 0.35) * 2000);
+    score = Math.max(1000, Math.min(3000, score));
     while (usedScores.has(score)) {
-      score = Math.floor(500 + rng() * 1500);
+      score = Math.floor(1000 + rng() * 2000);
     }
     usedScores.add(score);
 

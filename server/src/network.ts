@@ -13,6 +13,8 @@ import {
   type NewGameStartedMsg,
   type RoomSessionEndedMsg,
   type TopScoresResponseMsg,
+  type SetBountyMsg,
+  type BountyEarnedMsg,
   type ServerMsg,
   type PelletState,
   ARENA_SIZE,
@@ -131,4 +133,14 @@ export function buildTopScoresResponse(scores: { name: string; score: number }[]
     type: ServerMsgType.TopScoresResponse,
     scores,
   };
+}
+
+// ── Bounty system ──────────────────────────────────────
+
+export function buildSetBounty(targetId: string, targetName: string, targetScore: number): SetBountyMsg {
+  return { type: ServerMsgType.SetBounty, targetId, targetName, targetScore };
+}
+
+export function buildBountyEarned(targetName: string, bonusScore: number): BountyEarnedMsg {
+  return { type: ServerMsgType.BountyEarned, targetName, bonusScore };
 }

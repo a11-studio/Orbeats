@@ -199,7 +199,7 @@ export class HUD {
     playerName: string,
     serverScores?: { name: string; score: number }[],
   ): void {
-    const todayScores =
+    let todayScores =
       serverScores != null
         ? mergeTop10(
             serverScores.map((e) => ({ ...e, timestamp: 0 })),
@@ -207,6 +207,19 @@ export class HUD {
             10,
           )
         : getTopScoresTodayWithFallback(10);
+
+    // Always ensure the player's own score appears in the list, even if it
+    // didn't reach the server persistence threshold (MIN_SCORE).
+    const flooredFinal = Math.floor(finalScore);
+    const alreadyIn = todayScores.some(
+      (e) => e.name === playerName && Math.floor(e.score) === flooredFinal,
+    );
+    if (!alreadyIn && flooredFinal > 0) {
+      const injected = [...todayScores, { name: playerName, score: flooredFinal, timestamp: Date.now() }]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+      todayScores = injected;
+    }
     this.lastPopulateScores = todayScores.map((e) => ({ name: e.name, score: e.score }));
     this.lastPopulateFinalScore = finalScore;
     this.lastPopulatePlayerName = playerName;
