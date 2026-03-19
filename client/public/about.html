@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Orbeats – Real-time Multiplayer Blob Game</title>
+  <meta name="description" content="Learn about Orbeats, the fast-paced real-time multiplayer browser game where you grow your blob, eat rivals, and compete on live leaderboards." />
+  <link rel="canonical" href="https://orbeats.online/about" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,400..700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Mona Sans', sans-serif; background: #1a1a2e; color: rgba(255,255,255,0.88); line-height: 1.7; padding: 40px 24px 60px; max-width: 720px; margin: 0 auto; }
+    a { color: #ff6b35; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    h2 { font-size: 17px; font-weight: 600; color: rgba(255,255,255,0.95); margin: 32px 0 10px; }
+    p { margin-bottom: 14px; font-size: 15px; }
+    .back { display: inline-block; margin-bottom: 28px; font-size: 14px; opacity: 0.7; }
+    .back:hover { opacity: 1; }
+    .tagline { font-size: 16px; color: rgba(255,255,255,0.55); margin-bottom: 32px; }
+    .highlight { color: #ff6b35; font-weight: 600; }
+    .footer-links { margin-top: 48px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+    .footer-links a { color: rgba(255,255,255,0.55); }
+    .footer-links a:hover { color: #ff6b35; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back">← Back to game</a>
+
+  <h1>About Orbeats</h1>
+  <p class="tagline">A real-time multiplayer blob game — grow, eat, compete.</p>
+
+  <p>
+    Orbeats is a fast-paced, browser-based multiplayer game where you control a colourful blob on a shared arena. Your goal is simple: eat as many pellets and smaller players as possible, grow your blob to dominate the leaderboard, and survive until the session ends. No downloads, no accounts — just open a browser and start playing.
+  </p>
+
+  <p>
+    Every session lasts three minutes. That short format makes it easy to jump in for a quick match or stay for hours chasing a new personal best. When the timer runs out, a final score multiplier is applied and your result is saved to the daily leaderboard, where you can see how you stack up against everyone who played that day.
+  </p>
+
+  <h2>How the game works</h2>
+
+  <p>
+    The arena is filled with coloured pellets of different values. Small green pellets give +1 mass, glowing special pellets give +10, and rare diamond pellets are worth +100. As your blob absorbs pellets its radius grows, making it slower but harder to avoid. You can eat another player if you are at least 15% larger than them — a satisfying mechanic that rewards careful positioning and bold aggression in equal measure.
+  </p>
+
+  <p>
+    Movement is entirely mouse-driven on desktop (or touch on mobile): your blob glides smoothly toward the cursor, always in motion. You can also <span class="highlight">split</span> your blob in two by pressing Space or double-tapping on mobile. This launches half your mass forward at high speed, letting you catch fleeing targets or escape a larger pursuer. Split cells merge back together automatically after a few seconds.
+  </p>
+
+  <h2>What makes Orbeats different</h2>
+
+  <p>
+    Orbeats is built with a custom real-time game engine using WebSockets for live synchronisation between players. Unlike many browser games, there is no server-side lag compensation tricks or rubber-banding — the physics and collision detection run on the server at high frequency, giving every player a consistent and fair experience.
+  </p>
+
+  <p>
+    The <span class="highlight">Bounty system</span> adds a layer of strategy: 30 seconds into each session a target player is chosen for you. Hunt them down and eat them to earn a 20% bonus on top of their mass. A new target is assigned every 30 seconds, so there is always a clear objective — even when the arena feels chaotic.
+  </p>
+
+  <p>
+    Sessions are designed to be short so every game feels fresh. The post-death multiplier mini-game gives you a chance to boost your final score before it hits the leaderboard, rewarding players who play quickly and decisively.
+  </p>
+
+  <h2>Who is it for</h2>
+
+  <p>
+    Orbeats is for anyone who enjoys competitive browser games that are easy to learn but take time to master. Younger players enjoy the colourful, fast-paced action. More competitive players dig into the strategy: when to split, when to hold back, how to use the arena edges, and how to manage mass decay over the session. Whether you have two minutes or two hours, there is always room for one more game.
+  </p>
+
+  <h2>Technical details</h2>
+
+  <p>
+    The game client is built with <strong>Three.js</strong> for 3D rendering, <strong>TypeScript</strong> throughout, and <strong>Vite</strong> for fast builds. The server runs on Node.js with a custom WebSocket game loop. The arena, physics, and leaderboard calculations are all authoritative server-side, preventing cheating and keeping the experience consistent for every player in the room.
+  </p>
+
+  <div class="footer-links">
+    <a href="/">Play now</a>
+    <a href="/how-to-play">How to play</a>
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="/contact">Contact</a>
+  </div>
+</body>
+</html>

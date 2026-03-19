@@ -27,6 +27,8 @@ export default defineConfig({
             '/privacy': 'privacy.html',
             '/terms': 'terms.html',
             '/contact': 'contact.html',
+            '/about': 'about.html',
+            '/how-to-play': 'how-to-play.html',
           };
           const file = req.url ? routes[req.url.split('?')[0]] : null;
           if (file) {
