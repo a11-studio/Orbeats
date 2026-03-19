@@ -66,7 +66,7 @@
       user-select: none;
     }
 
-    #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
     /* ── Homepage intro + footer (below game, scroll to see) ───────────────────── */
     .site-intro { padding: 32px 24px 24px; max-width: 640px; margin: 0 auto; color: rgba(255,255,255,0.85); font-size: 15px; line-height: 1.6; }
     .site-intro h1 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 12px; }
@@ -138,7 +138,7 @@
     #join-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(rgba(15,12,41,0.7), rgba(15,12,41,0.8));
+      background: linear-gradient(rgba(15, 12, 41, 0.55), rgba(15, 12, 41, 0.55));
       z-index: 100;
       font-family: 'Mona Sans', sans-serif;
     }
@@ -154,7 +154,11 @@
       position: absolute; inset: 0; z-index: 1;
       background: linear-gradient(rgba(15,12,41,0.5), rgba(15,12,41,0.65));
       pointer-events: none;
+      transition: opacity 1.2s ease-out;
     }
+    /* When live canvas is ready: fade static bg out, soften overlay so canvas shows through */
+    #join-screen.entry-live-ready .join-bg img { opacity: 0; transition: opacity 1.2s ease-out; }
+    #join-screen.entry-live-ready .join-overlay { opacity: 0.2; }
     #join-screen.hidden { display: none; }
     .join-modal-panel {
       position: relative; z-index: 2;

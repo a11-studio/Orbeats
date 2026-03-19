@@ -3,6 +3,8 @@ import { createFloor } from './Floor.js';
 
 const CAMERA_HEIGHT = 88;
 const CAMERA_BACK = 65;
+/** Orbit speed for entry preview (rad/sec) — one full rotation ~90s */
+const PREVIEW_ORBIT_SPEED = 0.07;
 
 // ── WebGL Support Detection ──────────────────────────────
 function isWebGLAvailable(): boolean {
@@ -50,6 +52,9 @@ export class SceneManager {
   private cameraTargetZ: number = 0;
   private desiredPos = new THREE.Vector3();
 
+  // Entry preview: slow orbit around arena center
+  private previewAngle: number = 0;
+
   // Directional light (follows player for stable shadows)
   private dirLight!: THREE.DirectionalLight;
 
@@ -70,6 +75,7 @@ export class SceneManager {
 
     // ── 3. Create an explicit canvas ────────────────
     const canvas = document.createElement('canvas');
+    canvas.id = 'game-canvas';
     canvas.width = width;
     canvas.height = height;
     canvas.style.display = 'block';
@@ -168,6 +174,26 @@ export class SceneManager {
 
   /** Camera smoothing factor (lower = smoother follow) */
   private readonly cameraSmoothing = 0.065;
+
+  /** Entry preview: subtle orbit around arena center. Call each frame while on join screen. */
+  updatePreviewCamera(dt: number): void {
+    this.previewAngle += PREVIEW_ORBIT_SPEED * dt;
+    const radius = CAMERA_BACK;
+    const x = radius * Math.sin(this.previewAngle);
+    const z = radius * Math.cos(this.previewAngle);
+    this.camera.position.set(x, CAMERA_HEIGHT, z);
+    this.camera.lookAt(0, 0, 0);
+
+    this.dirLight.position.set(x + 40, 100, z + 30);
+    this.dirLight.target.position.set(0, 0, 0);
+    this.dirLight.target.updateMatrixWorld();
+  }
+
+  /** Reset camera target for smooth transition into gameplay follow */
+  resetCameraTarget(x: number, z: number): void {
+    this.cameraTargetX = x;
+    this.cameraTargetZ = z;
+  }
 
   followTarget(x: number, z: number, _mass: number, _dt: number, _velX: number = 0, _velZ: number = 0): void {
     this.cameraTargetX += (x - this.cameraTargetX) * this.cameraSmoothing;

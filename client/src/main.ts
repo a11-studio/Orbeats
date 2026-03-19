@@ -41,6 +41,7 @@ import { BountyArrow } from './ui/BountyArrow.js';
 import { getWsUrl, normalizeWsUrl } from './utils/wsUrl.js';
 import { isMobile } from './utils/deviceUtils.js';
 import { markClick, markWsOpen, markWelcome, markGameplayReady } from './utils/startupTiming.js';
+import { generatePreviewPellets } from './utils/previewPellets.js';
 import { APP_VERSION, BASE_MASS, massToRadius, massToSpeed } from '@orbeats/shared';
 
 mountAnalytics();
@@ -102,6 +103,13 @@ const gameOverDeps: GameOverDeps = {
 
 const playerMesh = new PlayerMesh(0xff3333);
 const pelletManager = new PelletMeshManager(sceneManager.scene);
+
+/** Placeholder pellets for entry screen preview (no server required) */
+const previewPellets = generatePreviewPellets();
+const PREVIEW_READY_FRAMES = 45;
+const PREVIEW_READY_MS = 600;
+let previewFrameCount = 0;
+let previewStartTime = 0;
 const enemyMeshes = new Map<string, EnemyMesh>();
 
 // HTML overlay name tags (constant pixel size)
@@ -222,11 +230,7 @@ setupJoinScreen({
       setTimeout(() => {
         if (state.playerId && !joinScreen.classList.contains('hidden')) {
           console.warn('[Game] PelletSync timeout — showing game without pellets');
-          joinBtn.innerHTML = 'PLAY';
-          joinBtn.removeAttribute('disabled');
-          joinScreen.classList.add('hidden');
-          hud.show();
-          markGameplayReady();
+          hideJoinAndStartGame();
         }
       }, 8000);
     } catch (e) {
@@ -266,13 +270,18 @@ socket.onWelcome = (msg) => {
   }
   // If PelletSync already arrived (unlikely), show game now
   if (pelletStore.size > 0 && !joinScreen.classList.contains('hidden')) {
-    joinBtn.innerHTML = 'PLAY';
-    joinBtn.removeAttribute('disabled');
-    joinScreen.classList.add('hidden');
-    hud.show();
-    markGameplayReady();
+    hideJoinAndStartGame();
   }
 };
+
+function hideJoinAndStartGame(): void {
+  joinBtn.innerHTML = 'PLAY';
+  joinBtn.removeAttribute('disabled');
+  joinScreen.classList.add('hidden');
+  hud.show();
+  sceneManager.resetCameraTarget(prediction.renderX, prediction.renderZ);
+  markGameplayReady();
+}
 
 socket.onSnapshot = (msg) => {
   if (state.gamePhase === 'GAME_OVER' || state.gamePhase === 'MULTIPLIER') return;
@@ -470,11 +479,7 @@ socket.onPelletSync = (msg) => {
   console.log(`[Game] PelletSync received pellets=${msg.pellets.length} t=${t}`);
   // Gate gameplay: hide join screen only after initial pellet sync (ensures pellets visible on start)
   if (state.playerId && !joinScreen.classList.contains('hidden')) {
-    joinBtn.innerHTML = 'PLAY';
-    joinBtn.removeAttribute('disabled');
-    joinScreen.classList.add('hidden');
-    hud.show();
-    markGameplayReady();
+    hideJoinAndStartGame();
   }
 };
 
@@ -496,7 +501,20 @@ function gameLoop(now: number): void {
   lastTime = now;
 
   if (!state.playerId) {
+    // Entry preview: floor + pellets, subtle orbit camera
+    if (previewStartTime === 0) previewStartTime = now;
+    previewFrameCount++;
+    sceneManager.updatePreviewCamera(dt);
+    pelletManager.update(previewPellets, 0);
     sceneManager.render();
+
+    // Reveal live canvas once ready (smooth fade from static image)
+    if (
+      !joinScreen.classList.contains('entry-live-ready') &&
+      (previewFrameCount >= PREVIEW_READY_FRAMES || now - previewStartTime >= PREVIEW_READY_MS)
+    ) {
+      joinScreen.classList.add('entry-live-ready');
+    }
     return;
   }
 
