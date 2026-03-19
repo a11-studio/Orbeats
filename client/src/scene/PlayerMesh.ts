@@ -53,6 +53,12 @@ export class PlayerMesh {
     }
   }
 
+  setColor(color: number): void {
+    const mat = this.mesh.material as THREE.MeshStandardMaterial;
+    mat.color.setHex(color);
+    mat.emissive.copy(mat.color).multiplyScalar(0.08);
+  }
+
   addToScene(scene: THREE.Scene): void {
     scene.add(this.mesh);
   }

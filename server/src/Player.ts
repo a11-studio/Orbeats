@@ -43,7 +43,9 @@ export class Player {
     this.name = name;
     this.isBot = isBot;
     this.mass = initialMass ?? BASE_MASS;
-    this.color = isBot ? CANDY_COLORS[colorIndex++ % CANDY_COLORS.length] : 0xff3333;
+    this.color = isBot
+      ? CANDY_COLORS[colorIndex++ % CANDY_COLORS.length]
+      : CANDY_COLORS[Math.floor(Math.random() * CANDY_COLORS.length)];
     this.alive = true;
 
     const pos = Player.randomSpawnPos();

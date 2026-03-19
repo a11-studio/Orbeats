@@ -355,13 +355,15 @@ socket.onDeath = (msg) => {
   };
 
   playerMesh.mesh.visible = false;
+  const myEntity = interpolation.entities.find((e) => e.id === state.playerId && e.parentId === null);
+  const deathColor = myEntity?.color ?? 0xff3333;
   mergeAnimManager.startBurst(
     sceneManager.scene,
     playerMesh.mesh.position.x,
     playerMesh.mesh.position.y,
     playerMesh.mesh.position.z,
     pr,
-    0xff3333,
+    deathColor,
   );
 
   deathFadeOverlay.mount();
@@ -545,7 +547,7 @@ function gameLoop(now: number): void {
       if (entity.parentId === state.playerId) {
         let mesh = splitMeshes.get(entity.id);
         if (!mesh) {
-          mesh = new PlayerMesh(0xff3333);
+          mesh = new PlayerMesh(entity.color);
           mesh.addToScene(sceneManager.scene);
           splitMeshes.set(entity.id, mesh);
         }
@@ -654,6 +656,9 @@ function gameLoop(now: number): void {
   prediction.updateCorrection(dt);
 
   // ── 5. Update player mesh at VISUAL position ──────
+  const myEntity = interpolation.entities.find((e) => e.id === state.playerId && e.parentId === null);
+  if (myEntity) playerMesh.setColor(myEntity.color);
+
   if (state.playerAlive) {
     playerMesh.update(prediction.renderX, prediction.renderZ, state.playerMass, dt);
     playerMesh.mesh.visible = true;
@@ -690,7 +695,7 @@ function gameLoop(now: number): void {
 
       let mesh = splitMeshes.get(entity.id);
       if (!mesh) {
-        mesh = new PlayerMesh(0xff3333);
+        mesh = new PlayerMesh(entity.color);
         mesh.addToScene(sceneManager.scene);
         splitMeshes.set(entity.id, mesh);
       }
