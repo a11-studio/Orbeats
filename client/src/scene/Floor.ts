@@ -16,12 +16,10 @@ export function createFloor(): THREE.Mesh {
   canvas.height = res;
   const ctx = canvas.getContext('2d')!;
 
-  // Background - light gray
-  ctx.fillStyle = '#e8e8ec';
+  ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, res, res);
 
-  // Grid lines
-  ctx.strokeStyle = '#d0d0d8';
+  ctx.strokeStyle = '#dddddd';
   ctx.lineWidth = 1.5;
   const step = res / tileCount;
   for (let i = 0; i <= tileCount; i++) {

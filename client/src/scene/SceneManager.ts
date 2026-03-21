@@ -26,11 +26,11 @@ function showWebGLError(): void {
     position: fixed; inset: 0; z-index: 99999;
     display: flex; align-items: center; justify-content: center; flex-direction: column;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    font-family: 'Mona Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
     color: #fff; text-align: center; padding: 32px;
   `;
   overlay.innerHTML = `
-    <h1 style="font-size:48px;margin-bottom:16px;color:#ff4444;">WebGL Not Available</h1>
+    <h1 style="font-size:48px;margin-bottom:16px;color:#ea580c;">WebGL Not Available</h1>
     <p style="font-size:20px;max-width:500px;opacity:0.8;line-height:1.6;">
       WebGL is not available in this browser or device.<br/>
       Please try a different browser, enable hardware acceleration in your browser settings,
@@ -88,8 +88,10 @@ export class SceneManager {
 
     // ── 4. Scene ────────────────────────────────────
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xdde0e8);
-    this.scene.fog = new THREE.Fog(0xdde0e8, 200, 500);
+    /* Off-canvas sky + fog — cool gray (#CFD1DA), distinct from white floor (Floor.ts) */
+    const skyColor = 0xcfd1da;
+    this.scene.background = new THREE.Color(skyColor);
+    this.scene.fog = new THREE.Fog(skyColor, 200, 500);
 
     // ── 5. Camera ───────────────────────────────────
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 800);

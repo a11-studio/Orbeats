@@ -15,7 +15,7 @@
   <meta property="og:title" content="Orbeats — Multiplayer 3D Arena Game" />
   <meta property="og:description" content="Eat pellets and players to grow. Split to attack or escape. Compete in 3-minute sessions. Play free in your browser." />
   <meta property="og:image" content="https://orbeats.online/og-image.png" />
-  <meta property="og:image:alt" content="Orbeats — 3D multiplayer arena game with red player sphere and colorful pellets on a grid" />
+  <meta property="og:image:alt" content="Orbeats — 3D multiplayer arena game with orange branding and colorful pellets on a grid" />
   <meta property="og:site_name" content="Orbeats" />
   <meta property="og:locale" content="en_US" />
 
@@ -25,12 +25,12 @@
   <meta name="twitter:description" content="Eat pellets and players to grow. Split to attack or escape. Compete in 3-minute sessions. Play free in your browser." />
   <meta name="twitter:image" content="https://orbeats.online/og-image.png" />
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23ff4444'/><g stroke='%23fff' stroke-width='1.2' stroke-linecap='round' fill='none'><path d='M8 11.5L11.5 14L8 15.5'/><path d='M24 11.5L20.5 14L24 15.5'/></g><circle cx='10' cy='14' r='1' fill='%23fff'/><circle cx='22' cy='14' r='1' fill='%23fff'/><path d='M10.5 20.5L13 22L15.5 20L18 22L21.5 20.5' stroke='%23fff' stroke-width='1' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23f97316'/><g stroke='%23fff' stroke-width='1.2' stroke-linecap='round' fill='none'><path d='M8 11.5L11.5 14L8 15.5'/><path d='M24 11.5L20.5 14L24 15.5'/></g><circle cx='10' cy='14' r='1' fill='%23fff'/><circle cx='22' cy='14' r='1' fill='%23fff'/><path d='M10.5 20.5L13 22L15.5 20L18 22L21.5 20.5' stroke='%23fff' stroke-width='1' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
   <!-- Preconnect for faster loads while user enters name -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="preconnect" href="https://ws.orbeats.online" />
-  <link href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,400..700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Mona+Sans:wdth,wght@75..125,400..700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
 
   <!-- JSON-LD structured data -->
   <script type="application/ld+json">
@@ -48,15 +48,34 @@
   </script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2749421926036385" crossorigin="anonymous"></script>
   <style>
+    :root {
+      --or-bg: #cfd1da;
+      --or-surface: #35353b;
+      --or-surface-2: #3f3f46;
+      --or-border: rgba(255, 255, 255, 0.1);
+      --or-text: #fafafa;
+      --or-muted: rgba(255, 255, 255, 0.55);
+      --or-accent: #f97316;
+      --or-gradient-btn: linear-gradient(91deg, #f09736 1.8%, #ed752f 100%);
+      --or-gradient-btn-hover: linear-gradient(91deg, #f5a85a 1.8%, #f08545 100%);
+      --or-shadow-btn: 0 2px 24px 0 rgba(255, 145, 25, 0.6);
+      --or-shadow-btn-hover: 0 4px 28px 0 rgba(255, 145, 25, 0.72);
+      --or-radius-btn: 30px;
+      --or-radius: 4px;
+      --or-modal-bg: #dddddd;
+      --or-font: 'Plus Jakarta Sans', 'DM Sans', system-ui, sans-serif;
+      --or-font-body: 'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif;
+      --or-font-mona: 'Mona Sans', system-ui, sans-serif;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; touch-action: manipulation; font-family: 'Mona Sans', sans-serif; font-variation-settings: "wdth" 100; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--or-bg); touch-action: manipulation; font-family: var(--or-font-body); font-size: 15px; }
     canvas { display: block; }
 
     /* ── Name tags (HTML overlay) ───────────────────── */
     .nameTag {
       position: absolute;
       transform: translate(-50%, -100%);
-      font-family: 'Mona Sans', sans-serif;
+      font-family: var(--or-font);
       font-size: 12px;
       font-weight: 600;
       color: white;
@@ -97,9 +116,9 @@
       -webkit-backdrop-filter: blur(8px);
       color: #fff;
       padding: 10px 20px;
-      border-radius: 14px;
+      border-radius: var(--or-radius);
       font-size: 13px;
-      font-family: 'Mona Sans', sans-serif;
+      font-family: var(--or-font);
       line-height: 1.5;
       text-align: center;
       pointer-events: none;
@@ -118,7 +137,7 @@
       content: '';
       position: absolute;
       inset: 0;
-      border-radius: 14px;
+      border-radius: var(--or-radius);
       border: 1px solid rgba(255, 255, 255, 0.1);
       pointer-events: none;
     }
@@ -129,9 +148,13 @@
     #join-screen {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(rgba(15, 12, 41, 0.55), rgba(15, 12, 41, 0.55));
+      /* Visible only until screenshot loads — avoids stacking dark layers on top of the image */
+      background: linear-gradient(rgba(32, 32, 36, 0.72), rgba(32, 32, 36, 0.78));
       z-index: 100;
-      font-family: 'Mona Sans', sans-serif;
+      font-family: var(--or-font-mona);
+    }
+    #join-screen:has(.join-bg.loaded) {
+      background: transparent;
     }
     .join-bg {
       position: absolute; inset: 0; z-index: 0; overflow: hidden;
@@ -141,50 +164,66 @@
       opacity: 0; transition: opacity 0.6s ease-out;
     }
     .join-bg.loaded img { opacity: 1; }
+    /* 50% dim — same over screenshot and live WebGL preview */
     .join-overlay {
       position: absolute; inset: 0; z-index: 1;
-      background: linear-gradient(rgba(15,12,41,0.5), rgba(15,12,41,0.65));
+      background: rgba(0, 0, 0, 0.5);
       pointer-events: none;
       transition: opacity 1.2s ease-out;
     }
-    /* When live canvas is ready: fade static bg out, soften overlay so canvas shows through */
+    /* When live canvas is ready: fade static image out; overlay stays 50% */
     #join-screen.entry-live-ready .join-bg img { opacity: 0; transition: opacity 1.2s ease-out; }
-    #join-screen.entry-live-ready .join-overlay { opacity: 0.2; }
     #join-screen.hidden { display: none; }
     .join-modal-panel {
       position: relative; z-index: 2;
-      background: rgba(20,20,48,0.95);
-      border-radius: 20px;
+      background: var(--or-modal-bg);
+      border-radius: 0;
       padding: 40px 48px;
       text-align: center;
       min-width: 320px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+      border: 1px solid rgba(0, 0, 0, 0.08);
       display: flex; flex-direction: column; align-items: center;
     }
     #join-screen .logo {
       height: 56px; width: auto; margin-bottom: 28px;
-      filter: drop-shadow(0 0 24px rgba(255,100,100,0.5));
+      filter: brightness(0);
     }
     #join-screen input {
-      width: 260px; padding: 14px 20px; font-size: 18px;
-      border: 2px solid rgba(255,255,255,0.2); border-radius: 30px;
-      background: rgba(255,255,255,0.08); color: #fff;
+      width: 280px; max-width: 92vw; padding: 14px 22px; font-size: 15px; font-weight: 600;
+      border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 9999px;
+      background: #fff; color: #18181b;
       outline: none; text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
+      font-family: var(--or-font-mona);
+      font-variation-settings: 'wdth' 100;
+      letter-spacing: 0.04em;
     }
-    #join-screen input::placeholder { color: rgba(255,255,255,0.4); }
-    #join-screen input:focus { border-color: rgba(255,100,100,0.6); }
+    /* Placeholder zostáva uppercase; napísaný text nie je nútený na veľké písmená */
+    #join-screen input::placeholder {
+      color: rgba(0, 0, 0, 0.38);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    #join-screen input:focus {
+      border-color: rgba(234, 88, 12, 0.55);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    }
     #join-screen button {
-      width: 260px; padding: 14px; font-size: 20px; font-weight: bold;
-      font-variation-settings: "wdth" 125;
-      border: none; border-radius: 30px; cursor: pointer;
-      background: linear-gradient(135deg, #ff4444, #ff6b35);
-      color: #fff; letter-spacing: 2px;
-      transition: transform 0.15s, box-shadow 0.15s;
-      box-shadow: 0 4px 20px rgba(255,68,68,0.4);
+      width: 280px; max-width: 92vw; padding: 14px 20px; font-size: 17px; font-weight: 800;
+      font-family: var(--or-font-mona);
+      font-variation-settings: 'wdth' 125;
+      border: none; border-radius: var(--or-radius-btn); cursor: pointer;
+      background: var(--or-gradient-btn);
+      color: #fff; letter-spacing: 0.14em; text-transform: uppercase;
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s, background 0.15s;
+      box-shadow: var(--or-shadow-btn);
     }
-    #join-screen button:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
+    #join-screen button:hover {
+      transform: translateY(-1px);
+      background: var(--or-gradient-btn-hover);
+      box-shadow: var(--or-shadow-btn-hover);
+    }
     #join-screen button:disabled:hover { transform: none; }
     #join-screen .join-spinner {
       display: inline-block; width: 22px; height: 22px;
@@ -195,7 +234,7 @@
     }
     @keyframes join-spin { to { transform: rotate(360deg); } }
     .join-error {
-      margin-top: 16px; max-width: 280px; font-size: 14px; color: rgba(255,200,100,0.95);
+      margin-top: 16px; max-width: 280px; font-size: 14px; color: #c2410c;
       text-align: center; line-height: 1.5;
     }
     /* Fixed footer links on entry — no background, above canvas overlay */
@@ -225,17 +264,17 @@
     #join-screen.hidden .join-entry-footer { display: none; }
 
     /* ── HUD ──────────────────────────────────────── */
-    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; font-family: 'Mona Sans', sans-serif; display: none; }
+    #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; font-family: var(--or-font); display: none; }
     #hud.active { display: block; }
 
     #trophy-badge {
       display: flex; align-items: center; gap: 8px;
-      background: linear-gradient(135deg, #ff9900, #ff6600);
-      padding: 8px 16px; border-radius: 24px;
-      color: #fff; font-size: 15px; font-weight: 700;
-      box-shadow: 0 4px 16px rgba(255,153,0,0.4);
+      background: var(--or-gradient-btn);
+      padding: 8px 16px; border-radius: var(--or-radius-btn);
+      color: #fff; font-size: 14px; font-weight: 700;
+      box-shadow: var(--or-shadow-btn);
     }
-    #trophy-score { font-variation-settings: "wdth" 125; }
+    #trophy-score { font-weight: 700; }
     #trophy-badge svg { width: 20px; height: 20px; fill: #fff; }
 
     /* ── Bottom-left: trophy ─────────────────────────────── */
@@ -259,10 +298,10 @@
     #session-timeline {
       position: relative;
       width: 160px; height: 36px;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0.45);
       backdrop-filter: blur(8px);
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: var(--or-radius);
+      border: 1px solid var(--or-border);
       overflow: hidden;
       cursor: pointer;
       transition: background 0.25s, border-color 0.25s, transform 0.25s;
@@ -308,22 +347,19 @@
       transform: translateY(-50%);
       font-size: 12px; font-weight: 600;
       color: rgba(255,255,255,0.9);
-      font-variation-settings: "wdth" 125;
     }
     .end-game-label {
       display: none;
       font-size: 12px; font-weight: 600;
       color: #fff; letter-spacing: 1px;
-      font-variation-settings: "wdth" 125;
     }
     #session-timeline-mobile-menu {
       display: none;
       width: 32px; height: 36px;
-      font-variation-settings: "wdth" 125;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0.45);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
+      border: 1px solid var(--or-border);
+      border-radius: var(--or-radius);
       color: #fff; font-size: 18px;
       cursor: pointer;
       align-items: center; justify-content: center;
@@ -337,9 +373,10 @@
 
     #leaderboard {
       position: absolute; top: 20px; right: 20px;
-      background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
-      border-radius: 14px; padding: 12px 16px; min-width: 180px;
-      color: #fff; font-size: 12px;
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+      border-radius: var(--or-radius); padding: 12px 16px; min-width: 180px;
+      color: var(--or-text); font-size: 12px;
+      border: 1px solid var(--or-border);
     }
     #leaderboard-list { list-style: none; }
     #leaderboard-list li {
@@ -351,20 +388,20 @@
     #leaderboard-list li.me { font-weight: 700; }
     #leaderboard-list li.me .rank { color: rgba(255,255,255,0.6); }
     #leaderboard-list li.me .name {
-      background: linear-gradient(135deg, #F09736, #ED752F);
+      background: var(--or-gradient-btn);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
     #leaderboard-list li.me .lb-score {
-      background: linear-gradient(135deg, #F09736, #ED752F);
+      background: var(--or-gradient-btn);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-    #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; font-variation-settings: "wdth" 125; }
+    #leaderboard-list li .rank { opacity: 0.5; min-width: 20px; }
     #leaderboard-list li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #leaderboard-list li .lb-score { font-weight: 600; font-variation-settings: "wdth" 125; }
+    #leaderboard-list li .lb-score { font-weight: 600; }
 
     /* ── Death / Game Over overlay ─────────────────── */
     #death-overlay {
@@ -372,32 +409,33 @@
       background: transparent; display: none;
       align-items: center; justify-content: center;
       z-index: 60;
-      font-family: 'Mona Sans', sans-serif; color: #fff;
+      font-family: var(--or-font-mona); color: #18181b;
     }
     #death-overlay.active { display: flex; }
     .death-panel {
-      background: rgba(20,20,40,0.92);
-      border-radius: 20px;
+      background: var(--or-modal-bg);
+      border-radius: 0;
       padding: 40px 48px;
       text-align: center;
       min-width: 340px;
       max-width: 420px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.22);
+      border: 1px solid rgba(0, 0, 0, 0.08);
     }
     .death-panel h2 {
-      font-size: 42px; margin-bottom: 8px; color: #ff4444;
-      letter-spacing: 3px; text-shadow: 0 0 20px rgba(255,68,68,0.4);
+      font-size: 36px; margin-bottom: 8px; color: #ea580c;
+      letter-spacing: 0.08em; font-weight: 800;
+      font-variation-settings: 'wdth' 115;
     }
-    #death-msg { font-size: 16px; opacity: 0.6; margin-bottom: 24px; }
+    #death-msg { font-size: 16px; color: rgba(0, 0, 0, 0.55); margin-bottom: 24px; }
     .death-score-row {
       display: flex; justify-content: center; align-items: baseline; gap: 12px;
       margin-bottom: 24px;
     }
-    .death-label { font-size: 16px; opacity: 0.5; }
-    .death-value { font-size: 36px; font-weight: 700; color: #ff9900; font-variation-settings: "wdth" 125; }
+    .death-label { font-size: 16px; color: rgba(0, 0, 0, 0.45); }
+    .death-value { font-size: 36px; font-weight: 700; color: #fb923c; }
     .death-highscores { margin-bottom: 28px; }
-    .death-highscores h3 { font-size: 14px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 12px; }
+    .death-highscores h3 { font-size: 14px; color: rgba(0, 0, 0, 0.45); letter-spacing: 2px; margin-bottom: 12px; }
     /* Toggle mode: no constraint when collapsed. Scroll mode: always scroll. Toggle expanded: scroll. */
     .death-highscore-list-wrap.score-list-scroll,
     .death-highscore-list-wrap.score-list-expanded {
@@ -406,31 +444,37 @@
     #death-highscore-list { list-style: none; padding: 0; }
     #death-highscore-list li {
       display: flex; justify-content: space-between; gap: 16px;
-      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 6px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       font-size: 15px;
+      color: #27272a;
     }
-    #death-highscore-list li .hs-rank { opacity: 0.4; min-width: 24px; text-align: left; font-variation-settings: "wdth" 125; }
+    #death-highscore-list li .hs-rank { color: rgba(0, 0, 0, 0.4); min-width: 24px; text-align: left; }
     #death-highscore-list li .hs-name { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #death-highscore-list li .hs-score { font-weight: 600; color: #ff9900; font-variation-settings: "wdth" 125; }
-    #death-highscore-list li.highlight { color: #ff4444; font-weight: 700; }
+    #death-highscore-list li .hs-score { font-weight: 600; color: #fb923c; }
+    #death-highscore-list li.highlight { color: #c2410c; font-weight: 700; }
     #death-play-btn {
-      padding: 14px 40px; font-size: 18px; font-weight: 700;
-      font-variation-settings: "wdth" 125;
-      border: none; border-radius: 30px; cursor: pointer;
-      background: linear-gradient(135deg, #ff4444, #ff6b35);
-      color: #fff; letter-spacing: 2px;
-      transition: transform 0.15s, box-shadow 0.15s;
-      box-shadow: 0 4px 20px rgba(255,68,68,0.4);
+      padding: 14px 40px; font-size: 16px; font-weight: 800;
+      font-family: var(--or-font-mona);
+      font-variation-settings: 'wdth' 125;
+      border: none; border-radius: var(--or-radius-btn); cursor: pointer;
+      background: var(--or-gradient-btn);
+      color: #fff; letter-spacing: 0.12em; text-transform: uppercase;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+      box-shadow: var(--or-shadow-btn);
     }
-    #death-play-btn:hover { transform: scale(1.05); box-shadow: 0 6px 30px rgba(255,68,68,0.6); }
+    #death-play-btn:hover {
+      transform: translateY(-1px);
+      background: var(--or-gradient-btn-hover);
+      box-shadow: var(--or-shadow-btn-hover);
+    }
     #death-play-btn:active { transform: scale(0.97); }
     .death-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .death-no-scores { font-size: 14px; opacity: 0.3; font-style: italic; }
+    .death-no-scores { font-size: 14px; color: rgba(0, 0, 0, 0.35); font-style: italic; }
     .death-show-more-btn {
-      margin-top: 8px; padding: 6px 0; font-size: 13px; color: rgba(255,255,255,0.7);
+      margin-top: 8px; padding: 6px 0; font-size: 13px; color: rgba(0, 0, 0, 0.55);
       background: none; border: none; cursor: pointer; text-decoration: underline;
     }
-    .death-show-more-btn:hover { color: rgba(255,255,255,0.5); }
+    .death-show-more-btn:hover { color: #ea580c; }
   </style>
 </head>
 <body>
@@ -443,7 +487,7 @@
     <div class="join-overlay"></div>
     <div class="join-modal-panel">
       <img src="/logo.svg" alt="Orbeats" class="logo" />
-      <input type="text" id="name-input" placeholder="Enter your name..." maxlength="16" />
+      <input type="text" id="name-input" placeholder="ENTER YOUR NAME" maxlength="16" autocomplete="username" />
       <button id="join-btn" data-ui>PLAY</button>
       <p id="join-error" class="join-error" style="display:none;"></p>
     </div>

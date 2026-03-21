@@ -11,6 +11,9 @@ export const SPECIAL_PELLET_RADIUS = 0.7;
 export const RARE_CANDY_MASS = 100;
 export const RARE_CANDY_RADIUS = 1.0;
 
+/** Brand orange — normal pellet colour + favicon (matches UI accent) */
+export const PELLET_COLOR_BRAND_ORANGE = 0xf97316;
+
 // ── Player / Entity ───────────────────────────────────
 export const BASE_MASS = 10;
 export const MIN_START_MASS = 10;

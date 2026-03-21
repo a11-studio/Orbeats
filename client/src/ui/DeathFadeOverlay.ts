@@ -6,8 +6,8 @@
 const FADE_DURATION_MS = 1000;
 const FADE_MAX_OPACITY = 0.52;
 const FADE_Z_INDEX = 55; // Below multiplier (60) and death-overlay (60)
-/** Dark navy tint — softer than pure black, gameplay faintly visible. */
-const FADE_BG = 'rgba(12, 18, 35, 0.95)';
+/** Dark gray tint — matches UI, gameplay faintly visible. */
+const FADE_BG = 'rgba(28, 28, 32, 0.92)';
 
 export class DeathFadeOverlay {
   private el: HTMLElement;

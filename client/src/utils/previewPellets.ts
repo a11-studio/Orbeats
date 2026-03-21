@@ -1,11 +1,11 @@
 import type { PelletState } from '@orbeats/shared';
-import { ARENA_HALF } from '@orbeats/shared';
+import { ARENA_HALF, PELLET_COLOR_BRAND_ORANGE } from '@orbeats/shared';
 
 /** Pellet colors matching server palette (Pellet.ts) */
 const NORMAL_COLORS = [
   0xff4444, 0x44ff44, 0x4444ff, 0xffff44, 0xff44ff, 0x44ffff,
   0xff8844, 0x88ff44, 0x4488ff, 0xff4488, 0x88ff88, 0x8888ff,
-  0x003cff, 0x5a00ff, 0xff5a00, 0xe6a800,
+  0x003cff, 0x5a00ff, PELLET_COLOR_BRAND_ORANGE, 0xe6a800,
 ];
 const SPECIAL_COLOR = 0x008687;
 const RARE_COLOR = 0xff1493;

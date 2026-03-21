@@ -7,6 +7,7 @@ import {
   SPECIAL_PELLET_RADIUS,
   RARE_CANDY_MASS,
   RARE_CANDY_RADIUS,
+  PELLET_COLOR_BRAND_ORANGE,
 } from '@orbeats/shared';
 
 /** Cell size for spatial hashing. ~27 cells per axis, ~5-6 pellets/cell. */
@@ -20,7 +21,10 @@ function cellKey(x: number, z: number): string {
 import type { PelletState } from '@orbeats/shared';
 
 const PELLET_COLORS = [
-  0x003cff, 0x5a00ff, 0xff5a00, 0xe6a800,
+  0x003cff,
+  0x5a00ff,
+  PELLET_COLOR_BRAND_ORANGE,
+  0xe6a800,
 ];
 const SPECIAL_10_COLOR = 0x008687; // teal
 const RARE_100_COLOR = 0xff1493; // hot pink

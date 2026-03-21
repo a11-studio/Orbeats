@@ -51,7 +51,7 @@ export class MultiplierOverlay {
       display: none; align-items: center; justify-content: center;
       background: transparent;
       backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-      z-index: 60; font-family: 'Mona Sans', sans-serif;
+      z-index: 60; font-family: 'Mona Sans', system-ui, sans-serif;
     `;
     this.bar = this.container.querySelector('#multiplier-bar')!;
     this.segmentsEl = this.bar.querySelector('.multiplier-segments')!;
@@ -62,31 +62,31 @@ export class MultiplierOverlay {
 
     const panel = this.container.querySelector('.multiplier-panel')! as HTMLElement;
     panel.style.cssText = `
-      background: rgba(20,20,40,0.95); padding: 48px 56px; border-radius: 20px;
+      background: #dddddd; padding: 48px 56px; border-radius: 0;
       min-width: 420px; text-align: center;
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.22);
     `;
     (this.container.querySelector('.multiplier-session-label') as HTMLElement).style.cssText = `
-      color: rgba(255,255,255,0.6); font-size: 14px; letter-spacing: 2px; margin-bottom: 8px;
+      color: rgba(0,0,0,0.45); font-size: 14px; letter-spacing: 2px; margin-bottom: 8px;
     `;
     this.sessionScoreEl.style.cssText = `
-      color: #ff9900; font-size: 42px; font-weight: 700; margin-bottom: 24px;
-      font-variation-settings: "wdth" 125;
+      color: #fb923c; font-size: 42px; font-weight: 700; margin-bottom: 24px;
     `;
     (this.container.querySelector('.multiplier-motivation') as HTMLElement).style.cssText = `
-      color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 6px;
+      color: #18181b; font-size: 20px; font-weight: 700; margin-bottom: 6px;
     `;
     (this.container.querySelector('.multiplier-subtitle') as HTMLElement).style.cssText = `
-      color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 28px;
+      color: rgba(0,0,0,0.55); font-size: 14px; margin-bottom: 28px;
     `;
     this.instructionEl.style.cssText = `
-      color: #fff; margin-bottom: 24px; font-size: 19px; font-weight: 700;
-      opacity: 0.95; letter-spacing: 0.04em;
+      color: #27272a; margin-bottom: 24px; font-size: 19px; font-weight: 800;
+      letter-spacing: 0.04em; font-variation-settings: 'wdth' 115;
     `;
     (this.container.querySelector('.multiplier-potential-label') as HTMLElement).style.cssText = `
-      color: rgba(255,255,255,0.8); font-size: 16px; margin-top: 24px;
+      color: rgba(0,0,0,0.65); font-size: 16px; margin-top: 24px;
     `;
-    this.potentialScoreEl.style.cssText = `font-weight: 700; color: #ff9900;`;
+    this.potentialScoreEl.style.cssText = `font-weight: 700; color: #fb923c;`;
     this.bar.style.cssText = `
       position: relative; height: 32px; overflow: visible; margin-bottom: 0;
     `;
@@ -95,8 +95,7 @@ export class MultiplierOverlay {
     `;
     const segStyle = (bg: string, glow?: string) => `
       flex: 1; display: flex; align-items: center; justify-content: center;
-      border-radius: 12px; font-size: 17px; font-weight: 700; letter-spacing: 0.03em;
-      font-variation-settings: "wdth" 125;
+      border-radius: 4px; font-size: 17px; font-weight: 700; letter-spacing: 0.03em;
       background: ${bg}; color: rgba(255,255,255,0.95);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.15)${glow ? `, ${glow}` : ''};
     `;
@@ -118,12 +117,11 @@ export class MultiplierOverlay {
     });
     this.indicator.style.cssText = `
       position: absolute; top: 50%; transform: translate(-50%, -50%);
-      width: 14px; height: 40px; left: 50%;
-      background: linear-gradient(180deg, #ff6b35, #ff4444);
-      border-radius: 7px; transition: none;
-      box-shadow: 0 0 16px rgba(255,68,68,0.7), 0 0 8px rgba(255,68,68,0.4),
-                  0 2px 4px rgba(0,0,0,0.3);
-      filter: drop-shadow(0 0 6px rgba(255,68,68,0.6));
+      width: 12px; height: 40px; left: 50%;
+      background: linear-gradient(91deg, #f09736 1.8%, #ed752f 100%);
+      border-radius: 2px; transition: none;
+      box-shadow: 0 0 14px rgba(234, 88, 12, 0.65), 0 2px 4px rgba(0,0,0,0.25);
+      filter: drop-shadow(0 0 4px rgba(234, 88, 12, 0.5));
     `;
 
     const handleStop = () => {
