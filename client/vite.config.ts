@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 
 export default defineConfig({
+  /** Relative asset URLs in dist (./assets/...) for static hosts, subfolders, CrazyGames. */
+  base: './',
   resolve: {
     alias: {
       '@orbeats/shared': path.resolve(__dirname, '../shared/src'),

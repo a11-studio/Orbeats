@@ -93,7 +93,7 @@ Open [http://localhost:5173](http://localhost:5173) in multiple tabs to play tog
 
 | Variable | Where | Description |
 |---|---|---|
-| `VITE_WS_URL` | Vercel (client) | WebSocket server URL, e.g. `wss://ws.orbeats.online` |
+| `VITE_WS_URL` | Vercel (client) | Optional; default prod fallback is `wss://orbeats.fly.dev/ws` |
 
 ---
 

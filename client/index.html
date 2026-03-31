@@ -29,7 +29,7 @@
   <!-- Preconnect for faster loads while user enters name -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preconnect" href="https://ws.orbeats.online" />
+  <link rel="preconnect" href="https://orbeats.fly.dev" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Mona+Sans:wdth,wght@75..125,400..700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
 
   <!-- JSON-LD structured data -->
@@ -652,20 +652,20 @@
   <!-- Join Screen (modal overlay, session screenshot as background with fade-in) -->
   <div id="join-screen" data-ui>
     <div class="join-bg" id="join-bg">
-      <img src="/join-bg.png" alt="" loading="lazy" decoding="async" onload="this.parentElement.classList.add('loaded')" />
+      <img src="./join-bg.png" alt="" loading="lazy" decoding="async" onload="this.parentElement.classList.add('loaded')" />
     </div>
     <div class="join-overlay"></div>
     <div class="join-modal-panel">
-      <img src="/logo.svg" alt="Orbeats" class="logo" />
+      <img src="./logo.svg" alt="Orbeats" class="logo" />
       <input type="text" id="name-input" placeholder="ENTER YOUR NAME" maxlength="16" autocomplete="username" />
       <button id="join-btn" data-ui>PLAY</button>
       <p id="join-error" class="join-error" style="display:none;"></p>
     </div>
     <nav class="join-entry-footer" aria-label="Legal and info">
-      <a href="/privacy">Privacy Policy</a><span class="sep">·</span>
-      <a href="/terms">Terms of Service</a><span class="sep">·</span>
-      <a href="/how-to-play">How to play</a><span class="sep">·</span>
-      <a href="/contact">Contact</a>
+      <a href="./privacy.html">Privacy Policy</a><span class="sep">·</span>
+      <a href="./terms.html">Terms of Service</a><span class="sep">·</span>
+      <a href="./how-to-play.html">How to play</a><span class="sep">·</span>
+      <a href="./contact.html">Contact</a>
     </nav>
   </div>
 
@@ -754,6 +754,6 @@
   <div id="analytics-root"></div>
   </div>
 
-  <script type="module" src="/src/main.ts"></script>
+  <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

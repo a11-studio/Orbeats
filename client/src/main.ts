@@ -212,15 +212,7 @@ setupJoinScreen({
     joinError.style.display = 'none';
     state.playerName = playerName;
 
-    const rawUrl = getWsUrl();
-    if (!rawUrl) {
-      showJoinError(
-        "Multiplayer server isn't configured for production yet. Set VITE_WS_URL to a wss:// endpoint.",
-      );
-      return;
-    }
-
-    const wsUrl = normalizeWsUrl(rawUrl);
+    const wsUrl = normalizeWsUrl(getWsUrl());
     markClick();
 
     joinBtn.innerHTML = '<span class="join-spinner"></span>';
@@ -246,14 +238,12 @@ setupJoinScreen({
   },
   showError: showJoinError,
   onPreconnect: () => {
-    const rawUrl = getWsUrl();
-    if (rawUrl) socket.connect(normalizeWsUrl(rawUrl));
+    socket.connect(normalizeWsUrl(getWsUrl()));
   },
 });
 
 // Preconnect on load so session starts loading while user enters name (arena visible in background)
-const initialWsUrl = getWsUrl();
-if (initialWsUrl) socket.connect(normalizeWsUrl(initialWsUrl));
+socket.connect(normalizeWsUrl(getWsUrl()));
 
 // ── Socket handlers ──────────────────────────────────
 socket.onWsOpen = () => markWsOpen();
