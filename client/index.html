@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Orbeats — Multiplayer 3D Arena Game | Eat, Split, Dominate</title>
   <meta name="description" content="Orbeats is a real-time multiplayer 3D arena game. Eat pellets and smaller players to grow, split to attack or escape, and compete in 3-minute sessions. Play free in your browser." />
   <meta name="keywords" content="Orbeats, multiplayer game, 3D arena, Agar.io, browser game, online game, real-time multiplayer" />
@@ -68,8 +68,19 @@
       --or-font-mona: 'Mona Sans', system-ui, sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--or-bg); touch-action: manipulation; font-family: var(--or-font-body); font-size: 15px; }
-    canvas { display: block; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--or-bg);
+      touch-action: manipulation;
+      font-family: var(--or-font-body);
+      font-size: 15px;
+      overscroll-behavior: none;
+      overscroll-behavior-y: none;
+      -webkit-overflow-scrolling: auto;
+    }
+    canvas { display: block; touch-action: none; }
 
     /* ── Name tags (HTML overlay) ───────────────────── */
     .nameTag {
@@ -85,6 +96,18 @@
       user-select: none;
     }
 
+    /* Full-screen game surface: no browser pan/scroll stealing touches (mobile) */
+    #game-viewport {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      min-height: 100dvh;
+      height: 100%;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
     #game-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
 
     /* ── Bounty arrow ─────────────────────────────────── */
@@ -102,6 +125,35 @@
     @keyframes bounty-arrow-pulse {
       0%, 100% { opacity: 0.75; }
       50%       { opacity: 1;    }
+    }
+
+    /* ── Session end countdown (last 3s) — always flex + opacity to avoid first-frame jank (cf. bounty-toast) ─ */
+    #session-end-countdown {
+      position: fixed;
+      inset: 0;
+      z-index: 85;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.06s ease;
+      will-change: opacity;
+    }
+    #session-end-countdown.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    #session-end-countdown-text {
+      font-family: var(--or-font-mona);
+      font-size: min(22vw, 140px);
+      font-weight: 800;
+      font-variation-settings: 'wdth' 115;
+      color: #fff;
+      text-shadow: 0 6px 40px rgba(0, 0, 0, 0.55), 0 2px 12px rgba(0, 0, 0, 0.4);
+      letter-spacing: 0.06em;
+      line-height: 1;
     }
 
     /* ── Bounty toast ──────────────────────────────────── */
@@ -146,6 +198,7 @@
 
     /* ── Join Screen (modal overlay, session screenshot as background) ──────────────────────────────── */
     #join-screen {
+      touch-action: manipulation;
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
       /* Visible only until screenshot loads — avoids stacking dark layers on top of the image */
@@ -371,6 +424,30 @@
       #session-timeline-mobile-menu { display: flex; }
     }
 
+    /* Mobile / touch: no trophy badge; session timer centered & lifted above home indicator */
+    @media (hover: none) {
+      #bottom-left-area { display: none !important; }
+      #bottom-right-area {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        bottom: max(20px, env(safe-area-inset-bottom, 0px));
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        justify-content: center;
+        width: max-content;
+        max-width: calc(100vw - 24px);
+      }
+      #session-timeline-wrap {
+        flex-wrap: nowrap;
+        justify-content: center;
+      }
+      #session-timeline {
+        min-width: 200px;
+        width: min(72vw, 260px);
+      }
+    }
+
     #leaderboard {
       position: absolute; top: 20px; right: 20px;
       background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
@@ -410,6 +487,7 @@
       align-items: center; justify-content: center;
       z-index: 60;
       font-family: var(--or-font-mona); color: #18181b;
+      touch-action: manipulation;
     }
     #death-overlay.active { display: flex; }
     .death-panel {
@@ -478,7 +556,7 @@
   </style>
 </head>
 <body>
-  <div id="game-viewport" style="height: 100vh; min-height: 100vh; overflow: hidden; position: relative;">
+  <div id="game-viewport">
   <!-- Join Screen (modal overlay, session screenshot as background with fade-in) -->
   <div id="join-screen" data-ui>
     <div class="join-bg" id="join-bg">
@@ -525,6 +603,11 @@
         <button type="button" id="session-timeline-mobile-menu" data-ui title="End game">⋯</button>
       </div>
     </div>
+  </div>
+
+  <!-- Last 3s of session: 3, 2, 1 (pre-rendered layer; no display:none — see CSS) -->
+  <div id="session-end-countdown" aria-live="polite" aria-hidden="true">
+    <span id="session-end-countdown-text"></span>
   </div>
 
   <!-- Bounty toast — pre-rendered so backdrop-filter is already composited -->

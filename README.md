@@ -10,7 +10,7 @@
 
 - **Move** – your orb follows your mouse cursor (or finger on mobile).
 - **Eat pellets** – scattered across the arena, each pellet adds +1 mass. Special pellets add +10, rare pink diamonds add +100.
-- **Eat other players** – you must be at least **15% larger** than your target to eat them.
+- **Eat other players** – you must be at least **5% larger** than your target to eat them.
 - **Split (Space / double-tap)** – split your orb into two. Each half launches forward at speed. Blobs re-merge after ~8 seconds. You can chain-split up to **8 blobs**.
 - **Mass decay** – above 2 000 mass, your orb slowly loses mass over time. The bigger you are, the faster you shrink. Stay aggressive.
 - **3-minute session** – every room resets after 180 seconds. Scores reset for everyone simultaneously. Use the session timer (bottom-right) to plan your final push.
@@ -116,7 +116,7 @@ fly deploy
 | `ARENA_SIZE` | 800 | World units; arena spans −400 → +400 |
 | `PELLET_COUNT` | 4 000 | Target normal pellet density |
 | `BASE_MASS` | 10 | Starting orb mass |
-| `EAT_RATIO` | 1.15 | Must be 15% larger to eat |
+| `EAT_RATIO` | 1.05 | Must be 5% larger to eat |
 | `BASE_SPEED` | 60 | World units/s at base mass |
 | `SESSION_SECONDS` | 180 | Room session length (3 min) |
 | `MAX_PLAYER_CELLS` | 8 | Max split blobs per player |

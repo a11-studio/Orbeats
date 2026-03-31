@@ -1,4 +1,8 @@
-import { EAT_RATIO } from '@orbeats/shared';
+import {
+  EAT_RATIO,
+  RARE_CANDY_GRAB_BONUS_MAX_MASS,
+  RARE_CANDY_GRAB_EXTRA_RADIUS,
+} from '@orbeats/shared';
 import type { EntityState } from '@orbeats/shared';
 import type { Pellet } from './Pellet.js';
 
@@ -30,7 +34,14 @@ function dist(ax: number, az: number, bx: number, bz: number): number {
 export function checkPelletCollision(entity: Collidable, pellet: Pellet): boolean {
   if (!entity.alive) return false;
   const d = dist(entity.x, entity.z, pellet.x, pellet.z);
-  return d < entity.radius + pellet.radius;
+  let pelletR = pellet.radius;
+  if (
+    pellet.type === 'rare_100' &&
+    entity.mass <= RARE_CANDY_GRAB_BONUS_MAX_MASS
+  ) {
+    pelletR += RARE_CANDY_GRAB_EXTRA_RADIUS;
+  }
+  return d < entity.radius + pelletR;
 }
 
 /**

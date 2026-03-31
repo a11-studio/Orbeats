@@ -84,7 +84,7 @@ export class SceneManager {
     canvas.style.left = '0';
     canvas.style.width = '100%';
     canvas.style.height = '100%';
-    canvas.style.touchAction = 'manipulation';
+    canvas.style.touchAction = 'none';
 
     // ── 4. Scene ────────────────────────────────────
     this.scene = new THREE.Scene();

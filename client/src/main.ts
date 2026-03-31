@@ -34,6 +34,7 @@ import { HUD } from './ui/HUD.js';
 import { MultiplierOverlay } from './ui/MultiplierOverlay.js';
 import { DeathFadeOverlay } from './ui/DeathFadeOverlay.js';
 import { SessionTimeline } from './ui/SessionTimeline.js';
+import { SessionEndCountdown } from './ui/SessionEndCountdown.js';
 import { saveBestScoreIfHigher } from './ui/ScoreManager.js';
 import { setupJoinScreen } from './ui/JoinScreen.js';
 import { BountyToast } from './ui/BountyToast.js';
@@ -60,6 +61,7 @@ const input = new InputManager();
 const hud = new HUD();
 const multiplierOverlay = new MultiplierOverlay();
 const sessionTimeline = new SessionTimeline();
+const sessionEndCountdown = new SessionEndCountdown();
 const deathFadeOverlay = new DeathFadeOverlay();
 const bountyToast = new BountyToast();
 const bountyArrow = new BountyArrow();
@@ -503,6 +505,7 @@ function gameLoop(now: number): void {
   lastTime = now;
 
   if (!state.playerId) {
+    sessionEndCountdown.hide();
     // Entry preview: floor + pellets, subtle orbit camera
     if (previewStartTime === 0) previewStartTime = now;
     previewFrameCount++;
@@ -521,6 +524,7 @@ function gameLoop(now: number): void {
   }
 
   if (state.sessionLocked || state.gamePhase === 'GAME_OVER' || state.gamePhase === 'LEADERBOARD' || state.gamePhase === 'MULTIPLIER') {
+    sessionEndCountdown.hide();
     sessionTimeline.setVisible(false);
     const displayScore = state.gamePhase === 'GAME_OVER' ? state.frozenFinalScore : state.playerScore;
     hud.updateScore(displayScore);
@@ -583,8 +587,10 @@ function gameLoop(now: number): void {
 
   // ── Session timer (PLAYING only) — server-authoritative; no client expiry trigger ─────────
   if (state.sessionEndsAt > 0) {
+    sessionEndCountdown.prewarm();
     sessionTimeline.update(state.sessionEndsAt);
   }
+  sessionEndCountdown.update(state.sessionEndsAt, state.gamePhase);
 
   // ── 1. Update interpolation for remote entities ────
   interpolation.update();

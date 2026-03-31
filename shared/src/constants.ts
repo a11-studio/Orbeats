@@ -11,6 +11,10 @@ export const SPECIAL_PELLET_RADIUS = 0.7;
 export const RARE_CANDY_MASS = 100;
 export const RARE_CANDY_RADIUS = 1.0;
 
+/** Rare diamond: extra hit radius for low-mass players (easier pickup than small blob vs tiny visual). */
+export const RARE_CANDY_GRAB_BONUS_MAX_MASS = 200;
+export const RARE_CANDY_GRAB_EXTRA_RADIUS = 0.45;
+
 /** Brand orange — normal pellet colour + favicon (matches UI accent) */
 export const PELLET_COLOR_BRAND_ORANGE = 0xf97316;
 
@@ -20,7 +24,7 @@ export const MIN_START_MASS = 10;
 export const MAX_START_MASS = 30;
 export const R_SCALE = 0.5; // legacy; radius now uses cbrt
 export const BASE_SPEED = 60; // world units / second at base mass
-export const EAT_RATIO = 1.15; // must be 15% larger to eat
+export const EAT_RATIO = 1.05; // must be 5% larger to eat
 
 // ── Respawn ────────────────────────────────────────────
 export const RESPAWN_DELAY = 2000; // ms
