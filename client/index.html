@@ -171,7 +171,7 @@
     /* ── Bounty toast ──────────────────────────────────── */
     #bounty-toast {
       position: fixed;
-      top: 18px;
+      top: max(18px, calc(env(safe-area-inset-top, 0px) + 8px));
       left: 50%;
       transform: translateX(-50%) translateY(-10px);
       z-index: 500;
@@ -258,8 +258,9 @@
       height: 56px; width: auto; margin-bottom: 28px;
       filter: brightness(0);
     }
+    /* 16px+ prevents iOS Safari zooming the viewport while focusing the field */
     #join-screen input {
-      width: 280px; max-width: 92vw; padding: 14px 22px; font-size: 15px; font-weight: 600;
+      width: 280px; max-width: 92vw; padding: 14px 22px; font-size: 16px; font-weight: 600;
       border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 9999px;
       background: #fff; color: #18181b;
       outline: none; text-align: center;
@@ -362,7 +363,70 @@
     }
     #bottom-right-area > * { pointer-events: auto; }
     #session-timeline-wrap {
+      position: relative;
       display: flex; align-items: center; gap: 8px;
+    }
+    /* Touch: confirm End session without hover-flicker (desktop keeps hover morph) */
+    .session-end-popover {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: min(92vw, 260px);
+      max-width: calc(100vw - 24px);
+      padding: 12px 14px;
+      background: rgba(28, 28, 32, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: var(--or-radius);
+      border: 1px solid var(--or-border);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 25;
+      pointer-events: auto;
+      touch-action: manipulation;
+    }
+    .session-end-popover.open {
+      display: flex;
+    }
+    .session-end-popover-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+      text-align: center;
+      margin: 0;
+    }
+    .session-end-popover-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: stretch;
+    }
+    .session-end-popover-actions button {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: var(--or-font);
+      border-radius: var(--or-radius);
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+    }
+    #session-end-cancel-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    #session-end-confirm-btn {
+      background: var(--or-gradient-btn);
+      color: #fff;
+      border-color: transparent;
+    }
+    @media (hover: hover) {
+      .session-end-popover {
+        display: none !important;
+      }
     }
     #session-timeline {
       position: relative;
@@ -374,6 +438,8 @@
       overflow: hidden;
       cursor: pointer;
       transition: background 0.25s, border-color 0.25s, transform 0.25s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     #session-timeline:hover {
       background: rgba(0,0,0,0.65);
@@ -422,22 +488,15 @@
       font-size: 12px; font-weight: 600;
       color: #fff; letter-spacing: 1px;
     }
-    #session-timeline-mobile-menu {
-      display: none;
-      width: 32px; height: 36px;
-      background: rgba(0,0,0,0.45);
-      backdrop-filter: blur(8px);
+
+    #leaderboard {
+      position: absolute;
+      top: max(20px, env(safe-area-inset-top, 0px));
+      right: max(20px, env(safe-area-inset-right, 0px));
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+      border-radius: var(--or-radius); padding: 12px 16px; min-width: 180px;
+      color: var(--or-text); font-size: 12px;
       border: 1px solid var(--or-border);
-      border-radius: var(--or-radius);
-      color: #fff; font-size: 18px;
-      cursor: pointer;
-      align-items: center; justify-content: center;
-    }
-    @media (hover: hover) {
-      #session-timeline-mobile-menu { display: none !important; }
-    }
-    @media (hover: none) {
-      #session-timeline-mobile-menu { display: flex; }
     }
 
     /* Mobile / touch: no trophy badge; session timer centered & lifted above home indicator */
@@ -447,7 +506,7 @@
         left: 50%;
         right: auto;
         transform: translateX(-50%);
-        bottom: max(20px, env(safe-area-inset-bottom, 0px));
+        bottom: max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px));
         padding-left: env(safe-area-inset-left, 0px);
         padding-right: env(safe-area-inset-right, 0px);
         justify-content: center;
@@ -460,19 +519,19 @@
       }
       #session-timeline {
         min-width: 200px;
-        width: min(72vw, 260px);
+        width: min(72vw, 280px);
+        height: 44px;
+        min-height: 44px;
+      }
+      #leaderboard {
+        top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
+        right: max(12px, env(safe-area-inset-right, 0px));
+        max-height: min(42vh, calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 220px));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
     }
 
-    #leaderboard {
-      position: absolute;
-      top: max(20px, env(safe-area-inset-top, 0px));
-      right: max(20px, env(safe-area-inset-right, 0px));
-      background: rgba(0,0,0,0.45); backdrop-filter: blur(8px);
-      border-radius: var(--or-radius); padding: 12px 16px; min-width: 180px;
-      color: var(--or-text); font-size: 12px;
-      border: 1px solid var(--or-border);
-    }
     #leaderboard-list { list-style: none; }
     #leaderboard-list li {
       padding: 3px 0; display: flex; justify-content: space-between; gap: 10px; font-size: 12px;
@@ -624,7 +683,21 @@
     </div>
     <div id="bottom-right-area">
       <div id="session-timeline-wrap">
-        <div id="session-timeline" data-ui>
+        <div
+          id="session-end-popover"
+          class="session-end-popover"
+          role="dialog"
+          aria-modal="true"
+          aria-hidden="true"
+          aria-labelledby="session-end-popover-title"
+        >
+          <p id="session-end-popover-title" class="session-end-popover-title">End this session?</p>
+          <div class="session-end-popover-actions">
+            <button type="button" id="session-end-cancel-btn" data-ui>Cancel</button>
+            <button type="button" id="session-end-confirm-btn" data-ui>End game</button>
+          </div>
+        </div>
+        <div id="session-timeline" data-ui role="button" tabindex="0" aria-expanded="false" aria-haspopup="dialog" aria-label="Session time and end game">
           <div class="timeline-bar-wrap">
             <div class="timeline-bar-bg">
               <div class="timeline-bar-fill" id="timeline-bar-fill" style="width: 100%;"></div>
@@ -633,7 +706,6 @@
           <span class="timeline-label" id="timeline-label">3:00</span>
           <span class="end-game-label">END GAME</span>
         </div>
-        <button type="button" id="session-timeline-mobile-menu" data-ui title="End game">⋯</button>
       </div>
     </div>
   </div>

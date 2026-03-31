@@ -1,16 +1,23 @@
 import { getRemainingMs, formatRemaining, getProgress, WARN_THRESHOLD_MS } from '../utils/sessionTimer.js';
-import { isMobile } from '../utils/deviceUtils.js';
 
 /**
  * Session timeline UI: progress bar + remaining time.
- * Desktop: hover morphs to End Game button.
- * Mobile: tap timeline → morph to End Game → tap again to trigger (same flow as desktop hover).
+ * Desktop (hover): hover morphs to End Game; click while morphed ends session.
+ * Touch (no hover): tap opens a small popover (Cancel / End game); no separate ⋯ button.
  */
 export class SessionTimeline {
   private wrap: HTMLElement;
   private timeline: HTMLElement;
   private barFill: HTMLElement;
   private label: HTMLElement;
+  private popover: HTMLElement | null = null;
+  private popoverOpen = false;
+  private onDocClick = (e: MouseEvent): void => {
+    if (!this.popoverOpen || !this.popover) return;
+    const t = e.target as Node;
+    if (this.wrap.contains(t)) return;
+    this.closePopover();
+  };
 
   onEndGameClick: (() => void) | null = null;
 
@@ -19,46 +26,68 @@ export class SessionTimeline {
     this.timeline = document.getElementById('session-timeline')!;
     this.barFill = document.getElementById('timeline-bar-fill')!;
     this.label = document.getElementById('timeline-label')!;
-    const mobileMenu = document.getElementById('session-timeline-mobile-menu')!;
+    this.popover = document.getElementById('session-end-popover');
 
-    // Desktop: hover morph
-    this.timeline.addEventListener('mouseenter', () => this.setMorph(true));
-    this.timeline.addEventListener('mouseleave', () => this.setMorph(false));
+    const prefersHover = typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches;
 
-    // Mobile: tap to morph, tap again to trigger (mimics desktop hover)
-    let mobileMorphTimeout: ReturnType<typeof setTimeout> | null = null;
-    this.timeline.addEventListener('click', (e) => {
-      if (isMobile()) {
-        e.preventDefault();
+    if (prefersHover) {
+      this.timeline.addEventListener('mouseenter', () => this.setMorph(true));
+      this.timeline.addEventListener('mouseleave', () => this.setMorph(false));
+      this.timeline.addEventListener('click', (e) => {
         if (this.timeline.classList.contains('morph-end-game')) {
-          if (mobileMorphTimeout) clearTimeout(mobileMorphTimeout);
-          mobileMorphTimeout = null;
+          e.preventDefault();
           this.onEndGameClick?.();
-          this.setMorph(false);
-        } else {
-          if (mobileMorphTimeout) clearTimeout(mobileMorphTimeout);
-          this.setMorph(true);
-          mobileMorphTimeout = setTimeout(() => {
-            this.setMorph(false);
-            mobileMorphTimeout = null;
-          }, 5000);
         }
-        return;
-      }
-      // Desktop: click when morphed
-      if (this.timeline.classList.contains('morph-end-game')) {
+      });
+    } else {
+      this.timeline.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        this.togglePopover();
+      });
+      this.timeline.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.togglePopover();
+        }
+      });
+      const cancelBtn = document.getElementById('session-end-cancel-btn');
+      const confirmBtn = document.getElementById('session-end-confirm-btn');
+      cancelBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closePopover();
+      });
+      confirmBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closePopover();
         this.onEndGameClick?.();
-      }
-    });
-
-    // Fallback: ⋯ menu still works on mobile (direct trigger)
-    mobileMenu.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.onEndGameClick?.();
-    });
+      });
+      document.addEventListener('click', this.onDocClick, false);
+    }
 
     this.setVisible(false);
+  }
+
+  private togglePopover(): void {
+    if (!this.popover) return;
+    if (this.popoverOpen) {
+      this.closePopover();
+    } else {
+      this.popoverOpen = true;
+      this.popover.classList.add('open');
+      this.popover.setAttribute('aria-hidden', 'false');
+      this.timeline.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  private closePopover(): void {
+    if (!this.popover) return;
+    this.popoverOpen = false;
+    this.popover.classList.remove('open');
+    this.popover.setAttribute('aria-hidden', 'true');
+    this.timeline.setAttribute('aria-expanded', 'false');
   }
 
   setMorph(morph: boolean): void {
@@ -68,6 +97,7 @@ export class SessionTimeline {
   /** Call when sessionStartAt changes (hide until we have it) */
   setVisible(visible: boolean): void {
     this.wrap.style.display = visible ? 'flex' : 'none';
+    if (!visible) this.closePopover();
   }
 
   /** Update bar and label. Call every frame during gameplay. Uses sessionEndsAt (unix ms). */

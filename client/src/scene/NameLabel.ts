@@ -55,15 +55,18 @@ export class NameTagManager {
       return;
     }
 
-    const screenX = (this._vec.x * 0.5 + 0.5) * window.innerWidth;
-    const screenY = (-this._vec.y * 0.5 + 0.5) * window.innerHeight;
+    // Match WebGL/camera mapping: use overlay size (same as renderer), not window — fixes iOS offset / shift.
+    const w = Math.max(this.container.clientWidth, 1);
+    const h = Math.max(this.container.clientHeight, 1);
+    const screenX = (this._vec.x * 0.5 + 0.5) * w;
+    const screenY = (-this._vec.y * 0.5 + 0.5) * h;
 
     // Off-screen (with margin) → hide
     if (
       screenX < -120 ||
-      screenX > window.innerWidth + 120 ||
+      screenX > w + 120 ||
       screenY < -60 ||
-      screenY > window.innerHeight + 60
+      screenY > h + 60
     ) {
       entry.el.style.display = 'none';
       return;
