@@ -75,6 +75,7 @@ export function runMultiplierFlow(
         playerName: state.playerName,
       });
     } else {
+      deps.deathFadeOverlay?.hide();
       hud.showDeathWithMultiplier(
         state.deathKillerName,
         multiplier,

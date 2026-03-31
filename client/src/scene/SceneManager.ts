@@ -20,6 +20,34 @@ function isWebGLAvailable(): boolean {
   }
 }
 
+/** Prefer layout size of the game surface; falls back for iOS Safari URL bar / split layouts. */
+function getViewportPixelSize(rendererCanvas: HTMLCanvasElement | null): {
+  width: number;
+  height: number;
+} {
+  const viewportEl = document.getElementById('game-viewport');
+  const el = viewportEl ?? rendererCanvas?.parentElement ?? rendererCanvas;
+  if (el) {
+    const r = el.getBoundingClientRect();
+    const w = Math.round(r.width);
+    const h = Math.round(r.height);
+    if (w >= 1 && h >= 1) {
+      return { width: w, height: h };
+    }
+  }
+  const vv = window.visualViewport;
+  if (vv) {
+    return {
+      width: Math.max(Math.round(vv.width), 1),
+      height: Math.max(Math.round(vv.height), 1),
+    };
+  }
+  return {
+    width: Math.max(window.innerWidth, 1),
+    height: Math.max(window.innerHeight, 1),
+  };
+}
+
 function showWebGLError(): void {
   const overlay = document.createElement('div');
   overlay.style.cssText = `
@@ -68,9 +96,8 @@ export class SceneManager {
       throw new Error('WebGL is not available — cannot create renderer.');
     }
 
-    // ── 2. Safe viewport dimensions ─────────────────
-    const width = Math.max(window.innerWidth, 1);
-    const height = Math.max(window.innerHeight, 1);
+    // ── 2. Safe viewport dimensions (refined after canvas is in DOM via onResize) ─────────────────
+    const { width, height } = getViewportPixelSize(null);
     console.log(`Viewport: ${width}x${height}, devicePixelRatio: ${window.devicePixelRatio}`);
 
     // ── 3. Create an explicit canvas ────────────────
@@ -139,8 +166,26 @@ export class SceneManager {
     // ── 9. Floor ────────────────────────────────────
     this.scene.add(createFloor());
 
-    // ── 10. Resize handler ──────────────────────────
-    window.addEventListener('resize', () => this.onResize());
+    // ── 10. Resize: match drawing buffer to laid-out #game-viewport (fixes iOS grey bands / wrong aspect)
+    const scheduleResize = (): void => {
+      requestAnimationFrame(() => this.onResize());
+    };
+    window.addEventListener('resize', scheduleResize);
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.onResize(), 150);
+    });
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', scheduleResize);
+      vv.addEventListener('scroll', scheduleResize);
+    }
+    const vpNode = document.getElementById('game-viewport');
+    if (vpNode && typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => scheduleResize());
+      ro.observe(vpNode);
+    }
+    scheduleResize();
+    requestAnimationFrame(scheduleResize);
   }
 
   private setupLights(): void {
@@ -227,10 +272,9 @@ export class SceneManager {
   }
 
   private onResize(): void {
-    const width = Math.max(window.innerWidth, 1);
-    const height = Math.max(window.innerHeight, 1);
+    const { width, height } = getViewportPixelSize(this.renderer.domElement);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+    this.renderer.setSize(width, height, false);
   }
 }

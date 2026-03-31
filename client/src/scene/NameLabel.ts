@@ -16,9 +16,12 @@ export class NameTagManager {
 
     this.container = document.createElement('div');
     this.container.id = 'nametag-container';
+    // Must live inside #game-viewport: as a body sibling, z-index 5 stacked above the whole viewport
+    // (canvas + HUD + death UI). Keep below #hud (10) and #death-overlay (60).
     this.container.style.cssText =
-      'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:5;';
-    document.body.appendChild(this.container);
+      'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden;z-index:8;';
+    const root = document.getElementById('game-viewport') ?? document.body;
+    root.appendChild(this.container);
   }
 
   /**

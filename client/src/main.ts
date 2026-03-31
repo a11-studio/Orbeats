@@ -79,6 +79,8 @@ function showGameOverWithFallbackScores(): void {
     clearTimeout(pendingGameOverTimeout);
     pendingGameOverTimeout = null;
   }
+  // Fade layer is a body-level sibling above #game-viewport; must hide when panel shows.
+  deathFadeOverlay.hide();
   hud.showDeathWithMultiplier(
     p.killerName,
     p.multiplier,
@@ -323,6 +325,7 @@ socket.onTopScoresResponse = (msg) => {
     clearTimeout(pendingGameOverTimeout);
     pendingGameOverTimeout = null;
   }
+  deathFadeOverlay.hide();
   hud.showDeathWithMultiplier(
     p.killerName,
     p.multiplier,

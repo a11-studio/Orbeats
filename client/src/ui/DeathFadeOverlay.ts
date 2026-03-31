@@ -5,7 +5,8 @@
 
 const FADE_DURATION_MS = 1000;
 const FADE_MAX_OPACITY = 0.52;
-const FADE_Z_INDEX = 55; // Below multiplier (60) and death-overlay (60)
+/** Body sibling; #game-viewport has no z-index, so this stacks above the whole game UI (death panel included). Hide when the Game Over panel is shown. */
+const FADE_Z_INDEX = 55;
 /** Dark gray tint — matches UI, gameplay faintly visible. */
 const FADE_BG = 'rgba(28, 28, 32, 0.92)';
 
